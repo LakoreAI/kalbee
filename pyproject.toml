@@ -1,0 +1,119 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kalbee"
+version = "0.6.0"
+description = "A clean, modular Python implementation of Kalman Filters and estimation algorithms."
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+  {name = "Le Duc Minh", email = "minh.leduc.0210@gmail.com"}
+]
+maintainers = [
+  {name = "Le Duc Minh", email = "minh.leduc.0210@gmail.com"}
+]
+keywords = [
+  "kalman-filter",
+  "extended-kalman-filter",
+  "ekf",
+  "unscented-kalman-filter",
+  "ukf",
+  "particle-filter",
+  "ensemble-kalman-filter",
+  "information-filter",
+  "state-estimation",
+  "sensor-fusion",
+  "tracking",
+  "alpha-beta-gamma",
+  "rts-smoother",
+  "adaptive-filter",
+  "robotics",
+  "signal-processing",
+  "python",
+]
+dependencies = [
+    "numpy>=1.24.4",
+    "scipy>=1.10.0",
+]
+
+[project.optional-dependencies]
+# Object-tracking examples (examples/yolo_*.py)
+yolo = [
+    "ultralytics>=8.0.0",
+    "opencv-python>=4.8.0",
+]
+# Plotting / documentation asset generation (scripts/generate_plots.py)
+viz = [
+    "matplotlib>=3.7.0",
+]
+# Polars DataFrame integration
+polars = [
+    "polars>=0.20.0",
+]
+# pandas DataFrame integration
+pandas = [
+    "pandas>=1.5.0",
+]
+# Documentation site
+docs = [
+    "mkdocs-material>=9.7.2",
+]
+# scikit-learn-compatible KalmanEstimator (fit/transform/predict, Pipeline-ready)
+sklearn = [
+    "scikit-learn>=1.0.0",
+]
+# `kalbee` CLI live terminal demo (kalbee demo --live)
+cli = [
+    "rich>=13.0.0",
+]
+
+[project.scripts]
+kalbee = "kalbee.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["kalbee*"]
+
+[tool.setuptools.package-data]
+kalbee = ["py.typed"]
+
+[project.urls]
+Homepage = "https://github.com/MinLee0210/kalbee"
+Repository = "https://github.com/MinLee0210/kalbee"
+Documentation = "https://minlee0210.github.io/kalbee"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+    "pytest-cov>=5.0.0",
+    "ruff>=0.14.13",
+    "mkdocs-material>=9.7.2",
+    "scikit-learn>=1.6.1",
+    "rich>=15.0.0",
+    "mypy>=1.8.0",
+    "pandas>=2.3.3",
+    "polars>=1.36.1",
+]
+benchmark = [
+    "filterpy>=1.4.5",
+    "pykalman>=0.10.2",
+    "simdkalman>=1.0.4",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["kalbee"]
+omit = ["*/experiments/benchmark.py"]
+
+[tool.coverage.report]
+show_missing = true
+
+[tool.mypy]
+python_version = "3.9"
+ignore_missing_imports = true
+
+[tool.ruff.lint]
+ignore = ["E731"]

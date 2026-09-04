@@ -1,0 +1,86 @@
+site_name: "kalbee"
+site_description: "A clean, modular Python library for Kalman Filters and state estimation algorithms."
+site_url: "https://minlee0210.github.io/kalbee"
+
+repo_url: "https://github.com/MinLee0210/kalbee"
+repo_name: "MinLee0210/kalbee"
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: amber
+      accent: orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: amber
+      accent: orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+    - content.code.annotate
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+extra_javascript:
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+nav:
+  - Home: index.md
+  - Getting Started: getting_started.md
+  - Filters:
+    - Kalman Filter: filters/kalman_filter.md
+    - Extended Kalman Filter: filters/extended_kalman_filter.md
+    - Unscented Kalman Filter: filters/unscented_kalman_filter.md
+    - SigmaPointUKF: filters/sigma_point_ukf.md
+    - Particle Filter: filters/particle_filter.md
+    - Ensemble Kalman Filter: filters/ensemble_kalman_filter.md
+    - Information Filter: filters/information_filter.md
+    - Alpha-Beta-Gamma Filter: filters/alpha_beta_gamma_filter.md
+    - Adaptive Kalman Filter: filters/adaptive_kalman_filter.md
+    - Fading Memory KF: filters/fading_memory_kf.md
+    - H-Infinity Filter: filters/hinfinity_filter.md
+    - Square-Root Kalman Filter: filters/square_root_kalman_filter.md
+    - Interacting Multiple Model: filters/interacting_multiple_model.md
+    - Vectorized Kalman Filter: filters/vectorized_kalman_filter.md
+  - Features:
+    - Motion & Measurement Models: features/motion_models.md
+    - Sensor-Fusion Cookbook (GPS+IMU): features/sensor_fusion_cookbook.md
+    - scikit-learn Integration: features/scikit_learn_integration.md
+    - Multi-Object Tracking: features/multi_object_tracking.md
+    - Innovation Gating: features/gating.md
+    - Outlier Detection: features/outlier_detection.md
+    - Parameter Learning (EM): features/parameter_learning.md
+    - Auto-Tuning: features/auto_tuning.md
+    - RTS Smoother: features/rts_smoother.md
+    - Metrics & Diagnostics: features/metrics.md
+    - Filter Diagnostics: features/diagnostics.md
+    - Consistency Tests: features/consistency_tests.md
+    - Experiment Runner: features/experiments.md
+    - Maneuvering Target Tracking: features/maneuvering_target.md
+    - YOLO Object Tracking: features/yolo_tracking.md
+  - CLI: cli.md
+  - Benchmarks: benchmarks.md
+  - Design & Architecture: architecture.md
