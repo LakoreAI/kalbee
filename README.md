@@ -6,7 +6,7 @@
 
 <br>
 
-`kalbee` is a clean, modular Python implementation of Kalman Filters and related estimation algorithms. Designed for simplicity and performance, it provides a standard interface for state estimation in various applications.
+`kalbee` is a clean, modular Python **toolkit for filtering and tracking**. It gathers a dozen Kalman-filter variants (linear, nonlinear, robust, adaptive), RTS-family smoothers, and multi-object trackers (SORT-style, JPDA, PMBM) behind one consistent `predict`/`update` interface — so you can go from denoising a sensor stream to tracking vehicles or pedestrians in video without switching libraries.
 
 ## Why kalbee?
 
@@ -300,6 +300,7 @@ mkdocs serve
 ```
 
 - [Getting Started](docs/getting_started.md)
+- [Learn](docs/learn.md) — intuition-first Kalman filtering tutorial
 - [Examples & Gallery](docs/examples.md) — animated demos + how-to recipes
 - **Filters**: [KF](docs/filters/kalman_filter.md) · [EKF](docs/filters/extended_kalman_filter.md) · [UKF](docs/filters/unscented_kalman_filter.md) · [SigmaPointUKF](docs/filters/sigma_point_ukf.md) · [PF](docs/filters/particle_filter.md) · [EnKF](docs/filters/ensemble_kalman_filter.md) · [IF](docs/filters/information_filter.md) · [ABG](docs/filters/alpha_beta_gamma_filter.md) · [AKF](docs/filters/adaptive_kalman_filter.md) · [Fading Memory KF](docs/filters/fading_memory_kf.md) · [H-Infinity](docs/filters/hinfinity_filter.md) · [SRKF](docs/filters/square_root_kalman_filter.md) · [Vectorized KF](docs/filters/vectorized_kalman_filter.md) · [IMM](docs/filters/interacting_multiple_model.md)
 - **Features**: [Sensor-Fusion Cookbook](docs/features/sensor_fusion_cookbook.md) · [scikit-learn Integration](docs/features/scikit_learn_integration.md) · [Gating](docs/features/gating.md) · [Outlier Detection](docs/features/outlier_detection.md) · [Auto-Tuning](docs/features/auto_tuning.md) · [Diagnostics](docs/features/diagnostics.md) · [Consistency Tests](docs/features/consistency_tests.md) · [RTS Smoother](docs/features/rts_smoother.md) · [Metrics](docs/features/metrics.md) · [Experiments](docs/features/experiments.md) · [Maneuvering Target Tracking](docs/features/maneuvering_target.md) · [YOLO Object Tracking](docs/features/yolo_tracking.md)

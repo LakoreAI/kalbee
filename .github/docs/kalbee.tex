@@ -30,44 +30,48 @@
 \begin{document}
 \renewcommand{\arraystretch}{0.9}
 
-\title{\toolkit{}: Engineering Reusable Software for Recursive State
-Estimation and Multi-Object Tracking}
+\title{\toolkit{}: A Python Toolkit for Filtering, Smoothing,\\ and Multi-Object Tracking}
 
 \author{
-\IEEEauthorblockN{Le Duc Minh}
-\IEEEauthorblockA{Independent Developer\\
-\texttt{minh.leduc.0210@gmail.com}\\
-}
+\IEEEauthorblockN{Le Duc Minh} \\
+\IEEEauthorblockA{\texttt{minh.leduc.0210@gmail.com}}
 }
 
 \maketitle
 
 \begin{abstract}
-Recursive Bayesian estimation---the Kalman filter and its nonlinear, robust,
-and adaptive descendants---underlies inertial navigation, sensor fusion,
-robotics, and multi-object tracking. Yet the gap between the elegant textbook
-recursion and software that is numerically stable, maintainable, and usable in
-a deployed system is wide, and is rarely discussed in the estimation
-literature. This paper treats the \emph{engineering} of such software as a
-first-class problem. We (i) frame filtering, smoothing, and multi-target
-tracking in a single Bayesian notation so that implementation decisions map to
-one shared vocabulary; (ii) catalogue the recurring failure modes---loss of
-covariance positive-definiteness, near-singular inverses, brittle
-interfaces, and evaluation that cannot be reproduced---and the defenses against
-them; (iii) argue for a small set of design patterns (a uniform filter
-interface, pluggable sigma-point strategies, ready-made model builders, and a
-factory for switching strategies) that let a single codebase span a dozen
-algorithms without duplicating application code; and (iv) describe a
-validation methodology based on normalized-innovation and normalized-estimation
-error consistency statistics rather than point estimates alone. Throughout, we
-illustrate the discussion with a freely available reference implementation.
-The result is a checklist, grounded in both theory and practice, for building
-or evaluating a state-estimation and tracking toolkit.
+\toolkit{} is an open-source Python \emph{tracking toolkit}. It gathers the
+Kalman filter and its nonlinear, robust, and adaptive descendants together
+with RTS-family smoothers, multi-target trackers (SORT-style association,
+JPDA, PMBM), and noise-learning routines behind one consistent
+\texttt{predict}/\texttt{update} interface, so that a single body of
+application code spans everything from denoising a sensor stream to tracking
+pedestrians in real video. The toolkit is deliberately educational as well as
+practical: every algorithm shares the same mathematical vocabulary, the same
+ready-made motion and measurement models, and the same consistency
+diagnostics. This paper uses \toolkit{} as a concrete, fully worked example of
+how to build such a toolkit and, more generally, of how to \emph{engineer}
+numerically reliable estimation and tracking software. We (i) frame
+filtering, smoothing, and multi-target tracking in a single Bayesian notation
+so that implementation decisions map to one shared vocabulary; (ii) catalogue
+the recurring failure modes---loss of covariance positive-definiteness,
+near-singular inverses, brittle interfaces, and evaluation that cannot be
+reproduced---and the defenses against them; (iii) argue for a small set of
+design patterns (a uniform filter interface, pluggable sigma-point
+strategies, ready-made model builders, and a factory for switching
+strategies) that let a single codebase span a dozen algorithms without
+duplicating application code; and (iv) describe a validation methodology
+based on normalized-innovation and normalized-estimation error consistency
+statistics rather than point estimates alone. The result is a checklist,
+grounded in both theory and practice, for building or evaluating a filtering
+and tracking toolkit, illustrated end-to-end with real pedestrian footage
+from the MOT Challenge.
 \end{abstract}
 
 \begin{IEEEkeywords}
 Kalman filter, recursive Bayesian estimation, sensor fusion, multi-object
-tracking, data association, numerical software, software design
+tracking, data association, tracking toolkit, numerical software, software
+design, Python
 \end{IEEEkeywords}
 
 \section{Introduction}
