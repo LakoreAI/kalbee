@@ -7,6 +7,9 @@ examples in [`examples/`](https://github.com/LakoreAI/kalbee/tree/main/examples)
 Every animation below is produced with kalbee's own public API by
 `scripts/generate_demo_gif.py` and `scripts/mot16_demo.py`.
 
+> New to state estimation? Read the [intuition-first intro](learn.md) first —
+> it derives the one-number case by hand and maps the math to kalbee's API.
+
 ---
 
 ## 1. Watch a Kalman filter denoise a signal

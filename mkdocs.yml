@@ -51,6 +51,9 @@ nav:
   - Home: index.md
   - Getting Started: getting_started.md
   - Examples & Gallery: examples.md
+  - Learn:
+    - Kalman Filtering, Intuition First: learn.md
+    - Filtering & Design Notes: filtering_logic.md
   - Filters:
     - Kalman Filter: filters/kalman_filter.md
     - Extended Kalman Filter: filters/extended_kalman_filter.md
