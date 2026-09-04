@@ -17,37 +17,51 @@ class FactorGraphExporter:
 
     def add_state_node(self, step_idx: int, state: np.ndarray, covariance: np.ndarray):
         """Add a state variable node at step k."""
-        self.nodes.append({
-            "id": f"x_{step_idx}",
-            "type": "state",
-            "step": step_idx,
-            "val": state.tolist(),
-            "cov": covariance.tolist(),
-        })
+        self.nodes.append(
+            {
+                "id": f"x_{step_idx}",
+                "type": "state",
+                "step": step_idx,
+                "val": state.tolist(),
+                "cov": covariance.tolist(),
+            }
+        )
 
     def add_motion_factor(
-        self, step_from: int, step_to: int, transition_matrix: np.ndarray, process_noise: np.ndarray
+        self,
+        step_from: int,
+        step_to: int,
+        transition_matrix: np.ndarray,
+        process_noise: np.ndarray,
     ):
         """Add a motion factor connecting x_{step_from} to x_{step_to}."""
-        self.factors.append({
-            "type": "motion_prior",
-            "from": f"x_{step_from}",
-            "to": f"x_{step_to}",
-            "F": transition_matrix.tolist(),
-            "Q": process_noise.tolist(),
-        })
+        self.factors.append(
+            {
+                "type": "motion_prior",
+                "from": f"x_{step_from}",
+                "to": f"x_{step_to}",
+                "F": transition_matrix.tolist(),
+                "Q": process_noise.tolist(),
+            }
+        )
 
     def add_measurement_factor(
-        self, step_idx: int, measurement: np.ndarray, measurement_matrix: np.ndarray, noise: np.ndarray
+        self,
+        step_idx: int,
+        measurement: np.ndarray,
+        measurement_matrix: np.ndarray,
+        noise: np.ndarray,
     ):
         """Add a measurement factor for x_{step_idx}."""
-        self.factors.append({
-            "type": "measurement",
-            "target": f"x_{step_idx}",
-            "z": measurement.tolist(),
-            "H": measurement_matrix.tolist(),
-            "R": noise.tolist(),
-        })
+        self.factors.append(
+            {
+                "type": "measurement",
+                "target": f"x_{step_idx}",
+                "z": measurement.tolist(),
+                "H": measurement_matrix.tolist(),
+                "R": noise.tolist(),
+            }
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         """Return factor graph dictionary representation."""

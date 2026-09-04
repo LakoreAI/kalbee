@@ -18,6 +18,7 @@ import numpy as np
 @dataclass
 class FilterSnapshot:
     """Snapshot of filter state at a single time step."""
+
     timestamp: int
     state_mean: np.ndarray
     state_cov_trace: float
@@ -171,10 +172,15 @@ class FilterDiagnostics:
 
         # NIS consistency test
         from kalbee.modules.utils.consistency import nis_test
+
         if len(self.innovation_history) >= 2:
             passed, _, mean_nis, expected, p_val = nis_test(
                 self.innovation_history,
-                [s.innovation_cov for s in self.snapshots if s.innovation_cov is not None],
+                [
+                    s.innovation_cov
+                    for s in self.snapshots
+                    if s.innovation_cov is not None
+                ],
                 alpha=self.alpha,
             )
             report["nis_test_passed"] = passed
@@ -202,6 +208,7 @@ class FilterDiagnostics:
             return {"insufficient_data": True}
 
         from kalbee.modules.utils.consistency import nis_test
+
         passed, _, mean_nis, _, p_val = nis_test(
             self.innovation_history,
             [s.innovation_cov for s in self.snapshots if s.innovation_cov is not None],
@@ -213,8 +220,8 @@ class FilterDiagnostics:
         # Check if NIS is within acceptable range
         nis_arr = np.array(self.nis_history)
         results["nis_in_range"] = bool(
-            np.percentile(nis_arr, 5) < self.m * 3 and
-            np.percentile(nis_arr, 95) > self.m * 0.3
+            np.percentile(nis_arr, 5) < self.m * 3
+            and np.percentile(nis_arr, 95) > self.m * 0.3
         )
 
         return results

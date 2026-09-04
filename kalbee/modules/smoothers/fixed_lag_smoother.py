@@ -98,21 +98,29 @@ class FixedLagSmoother:
         predicted_covs = list(self._predicted_covs)
 
         # Get transition matrix from filter if available
-        F = getattr(self.filter, 'transition_matrix', None)
+        F = getattr(self.filter, "transition_matrix", None)
 
         if F is not None:
             # Use linear RTS smoother
             from kalbee.modules.smoothers.rts_smoother import RTSSmoother
+
             smoothed_states, smoothed_covs = RTSSmoother.smooth(
                 filtered, filtered_covs, predicted, predicted_covs, F
             )
         else:
             # Use extended RTS smoother (numerical Jacobian)
-            from kalbee.modules.smoothers.extended_rts_smoother import ExtendedRTSSmoother
-            transition_fn = getattr(self.filter, 'transition_function', None)
+            from kalbee.modules.smoothers.extended_rts_smoother import (
+                ExtendedRTSSmoother,
+            )
+
+            transition_fn = getattr(self.filter, "transition_function", None)
             smoothed_states, smoothed_covs = ExtendedRTSSmoother.smooth(
-                filtered, filtered_covs, predicted, predicted_covs,
-                transition_function=transition_fn, state_dim=self.n
+                filtered,
+                filtered_covs,
+                predicted,
+                predicted_covs,
+                transition_function=transition_fn,
+                state_dim=self.n,
             )
 
         # Return the oldest smoothed state (the one that just "exits" the lag window)

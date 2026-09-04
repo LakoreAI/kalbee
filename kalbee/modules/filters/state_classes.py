@@ -12,6 +12,7 @@ class FilterState:
     Provides a clean dataclass interface for accessing filter state
     with type hints and serialization support.
     """
+
     state_mean: np.ndarray
     state_covariance: np.ndarray
     timestamp: Optional[int] = None
@@ -76,6 +77,7 @@ class FilterConfig:
 
     Enables easy serialization and reproducibility of filter configurations.
     """
+
     filter_type: str
     state_dim: int
     measurement_dim: int
@@ -114,10 +116,18 @@ class FilterConfig:
             filter_type=d["filter_type"],
             state_dim=d["state_dim"],
             measurement_dim=d["measurement_dim"],
-            transition_matrix=np.array(d["transition_matrix"]) if "transition_matrix" in d else None,
-            transition_covariance=np.array(d["transition_covariance"]) if "transition_covariance" in d else None,
-            measurement_matrix=np.array(d["measurement_matrix"]) if "measurement_matrix" in d else None,
-            measurement_covariance=np.array(d["measurement_covariance"]) if "measurement_covariance" in d else None,
+            transition_matrix=np.array(d["transition_matrix"])
+            if "transition_matrix" in d
+            else None,
+            transition_covariance=np.array(d["transition_covariance"])
+            if "transition_covariance" in d
+            else None,
+            measurement_matrix=np.array(d["measurement_matrix"])
+            if "measurement_matrix" in d
+            else None,
+            measurement_covariance=np.array(d["measurement_covariance"])
+            if "measurement_covariance" in d
+            else None,
             parameters=d.get("parameters", {}),
         )
 

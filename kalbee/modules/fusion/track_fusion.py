@@ -46,6 +46,7 @@ def _fusion_ci(
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Covariance Intersection fusion (consistent for unknown correlations)."""
     from kalbee.modules.fusion.covariance_intersection import covariance_intersection
+
     return covariance_intersection(mean_a, cov_a, mean_b, cov_b, omega=None)
 
 

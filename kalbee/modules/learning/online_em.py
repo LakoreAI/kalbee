@@ -94,7 +94,7 @@ class OnlineEM:
         # M-step: update Q and R
         if self._count >= self.min_samples:
             # Effective sample count
-            eff_count = (1 - self.gamma ** self._count) / (1 - self.gamma)
+            eff_count = (1 - self.gamma**self._count) / (1 - self.gamma)
 
             # Update Q
             A = self._E_xx / eff_count

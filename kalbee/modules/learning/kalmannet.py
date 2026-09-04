@@ -22,7 +22,9 @@ class KalmanNet:
             import torch
             import torch.nn as nn
         except ImportError:
-            raise ImportError("PyTorch is required for KalmanNet. Install with: pip install torch")
+            raise ImportError(
+                "PyTorch is required for KalmanNet. Install with: pip install torch"
+            )
 
         self.torch = torch
         self.state_dim = state_dim

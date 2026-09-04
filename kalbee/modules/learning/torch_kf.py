@@ -23,7 +23,9 @@ class DifferentiableKalmanFilter:
         try:
             import torch
         except ImportError:
-            raise ImportError("PyTorch is required for DifferentiableKalmanFilter. Install with: pip install torch")
+            raise ImportError(
+                "PyTorch is required for DifferentiableKalmanFilter. Install with: pip install torch"
+            )
 
         self.torch = torch
         self.state_dim = state_dim
@@ -34,7 +36,9 @@ class DifferentiableKalmanFilter:
         self.H = H if H is not None else torch.eye(meas_dim, state_dim)
         self.R = R if R is not None else torch.eye(meas_dim) * 0.1
 
-    def predict(self, state: Any, cov: Any, F: Optional[Any] = None, Q: Optional[Any] = None) -> Tuple[Any, Any]:
+    def predict(
+        self, state: Any, cov: Any, F: Optional[Any] = None, Q: Optional[Any] = None
+    ) -> Tuple[Any, Any]:
         """
         Differentiable predict step.
         """
@@ -49,7 +53,12 @@ class DifferentiableKalmanFilter:
         return state_pred, cov_pred
 
     def update(
-        self, state_pred: Any, cov_pred: Any, z: Any, H: Optional[Any] = None, R: Optional[Any] = None
+        self,
+        state_pred: Any,
+        cov_pred: Any,
+        z: Any,
+        H: Optional[Any] = None,
+        R: Optional[Any] = None,
     ) -> Tuple[Any, Any]:
         """
         Differentiable update step.
@@ -68,8 +77,8 @@ class DifferentiableKalmanFilter:
         state_upd = state_pred + torch.matmul(K, y)
         I_n = torch.eye(self.state_dim, device=state_pred.device)
         I_KH = I_n - torch.matmul(K, H)
-        cov_upd = torch.matmul(torch.matmul(I_KH, cov_pred), I_KH.transpose(-1, -2)) + torch.matmul(
-            torch.matmul(K, R), K.transpose(-1, -2)
-        )
+        cov_upd = torch.matmul(
+            torch.matmul(I_KH, cov_pred), I_KH.transpose(-1, -2)
+        ) + torch.matmul(torch.matmul(K, R), K.transpose(-1, -2))
 
         return state_upd, cov_upd

@@ -14,11 +14,13 @@ class SO3:
     def hat(v: np.ndarray) -> np.ndarray:
         """Skew-symmetric matrix operator (vee -> hat)."""
         v = v.flatten()
-        return np.array([
-            [0.0, -v[2], v[1]],
-            [v[2], 0.0, -v[0]],
-            [-v[1], v[0], 0.0],
-        ])
+        return np.array(
+            [
+                [0.0, -v[2], v[1]],
+                [v[2], 0.0, -v[0]],
+                [-v[1], v[0], 0.0],
+            ]
+        )
 
     @staticmethod
     def vee(m: np.ndarray) -> np.ndarray:
@@ -67,7 +69,11 @@ class SE3:
             V = np.eye(3)
         else:
             K = SO3.hat(phi / angle)
-            V = np.eye(3) + ((1.0 - np.cos(angle)) / angle) * K + ((angle - np.sin(angle)) / angle) * (K @ K)
+            V = (
+                np.eye(3)
+                + ((1.0 - np.cos(angle)) / angle) * K
+                + ((angle - np.sin(angle)) / angle) * (K @ K)
+            )
 
         t = V @ rho
         T = np.eye(4)
@@ -134,7 +140,9 @@ class InvariantEKF(BaseFilter):
         """Current 3D position vector (3, 1)."""
         return self.state[:3, 3].reshape(-1, 1)
 
-    def predict(self, dt: float = 1.0, twist: Optional[np.ndarray] = None, **kwargs) -> np.ndarray:
+    def predict(
+        self, dt: float = 1.0, twist: Optional[np.ndarray] = None, **kwargs
+    ) -> np.ndarray:
         """
         Right-Invariant predict step.
 

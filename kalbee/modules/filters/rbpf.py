@@ -38,7 +38,9 @@ class RaoBlackwellizedParticleFilter(BaseFilter):
         n_particles: int,
         linear_dim: int,
         nonlinear_dim: int,
-        transition_function_linear: Callable[[np.ndarray, np.ndarray, float], np.ndarray],
+        transition_function_linear: Callable[
+            [np.ndarray, np.ndarray, float], np.ndarray
+        ],
         transition_function_nonlinear: Callable[[np.ndarray, float], np.ndarray],
         measurement_function: Callable[[np.ndarray], np.ndarray],
         process_noise_linear: np.ndarray,
@@ -154,10 +156,9 @@ class RaoBlackwellizedParticleFilter(BaseFilter):
 
         for i in range(self.n_particles):
             # Compute predicted measurement
-            x_full = np.concatenate([
-                self.linear_means[i],
-                self.particles_nonlinear[i]
-            ]).reshape(-1, 1)
+            x_full = np.concatenate(
+                [self.linear_means[i], self.particles_nonlinear[i]]
+            ).reshape(-1, 1)
             z_pred = self.h(x_full).flatten()
 
             # Innovation
@@ -174,7 +175,9 @@ class RaoBlackwellizedParticleFilter(BaseFilter):
             K = P_l @ H_l.T @ safe_inv(S)
 
             # Update linear state mean and covariance for particle i
-            self.linear_means[i] = (self.linear_means[i].reshape(-1, 1) + K @ innov).flatten()
+            self.linear_means[i] = (
+                self.linear_means[i].reshape(-1, 1) + K @ innov
+            ).flatten()
             I_KH = np.eye(self.linear_dim) - K @ H_l
             self.linear_covs[i] = I_KH @ P_l @ I_KH.T + K @ self.R @ K.T
             self.linear_covs[i] = (self.linear_covs[i] + self.linear_covs[i].T) / 2.0
@@ -183,7 +186,9 @@ class RaoBlackwellizedParticleFilter(BaseFilter):
             det_S = max(1e-10, np.linalg.det(S))
             exponent = -0.5 * (innov.T @ safe_inv(S) @ innov).item()
             exponent = np.clip(exponent, -700, 700)
-            likelihood = (1.0 / np.sqrt((2 * np.pi) ** len(z) * det_S)) * np.exp(exponent)
+            likelihood = (1.0 / np.sqrt((2 * np.pi) ** len(z) * det_S)) * np.exp(
+                exponent
+            )
             self.weights[i] *= likelihood
 
         # Normalize weights
@@ -194,7 +199,7 @@ class RaoBlackwellizedParticleFilter(BaseFilter):
             self.weights = np.ones(self.n_particles) / self.n_particles
 
         # Resample if effective sample size is too low
-        ess = 1.0 / np.sum(self.weights ** 2)
+        ess = 1.0 / np.sum(self.weights**2)
         if ess < self.n_particles / 2:
             self._resample()
 
@@ -220,10 +225,9 @@ class RaoBlackwellizedParticleFilter(BaseFilter):
         """Compute weighted average of particles for global state."""
         state = np.zeros((self.total_dim, 1))
         for i in range(self.n_particles):
-            x_full = np.concatenate([
-                self.linear_means[i],
-                self.particles_nonlinear[i]
-            ]).reshape(-1, 1)
+            x_full = np.concatenate(
+                [self.linear_means[i], self.particles_nonlinear[i]]
+            ).reshape(-1, 1)
             state += self.weights[i] * x_full
 
         self.state = state

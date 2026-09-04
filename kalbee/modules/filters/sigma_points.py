@@ -58,7 +58,9 @@ class SimplexSigmaPoints(SigmaPoints):
     2n+1 sigma points symmetrically distributed around the mean.
     """
 
-    def __init__(self, n: int, alpha: float = 0.001, beta: float = 2.0, kappa: float = 0.0):
+    def __init__(
+        self, n: int, alpha: float = 0.001, beta: float = 2.0, kappa: float = 0.0
+    ):
         """
         Initialize Simplex sigma points.
 
@@ -72,14 +74,14 @@ class SimplexSigmaPoints(SigmaPoints):
         self.alpha = alpha
         self.beta = beta
         self.kappa = kappa
-        self.lambda_ = alpha ** 2 * (n + kappa) - n
+        self.lambda_ = alpha**2 * (n + kappa) - n
 
         # Compute weights
         c = n + self.lambda_
         self._wm = np.full(2 * n + 1, 1.0 / (2 * c))
         self._wc = np.full(2 * n + 1, 1.0 / (2 * c))
         self._wm[0] = self.lambda_ / c
-        self._wc[0] = self.lambda_ / c + (1 - alpha ** 2 + beta)
+        self._wc[0] = self.lambda_ / c + (1 - alpha**2 + beta)
 
     def sigma_points(self, x: np.ndarray, P: np.ndarray) -> np.ndarray:
         """Generate sigma points."""
@@ -117,7 +119,9 @@ class MerweScaledSigmaPoints(SigmaPoints):
     and kappa control the spread and weighting of sigma points.
     """
 
-    def __init__(self, n: int, alpha: float = 0.1, beta: float = 2.0, kappa: float = 0.0):
+    def __init__(
+        self, n: int, alpha: float = 0.1, beta: float = 2.0, kappa: float = 0.0
+    ):
         """
         Initialize Merwe scaled sigma points.
 
@@ -133,13 +137,13 @@ class MerweScaledSigmaPoints(SigmaPoints):
         self.kappa = kappa
 
         # Compute weights
-        lam = alpha ** 2 * (n + kappa) - n
+        lam = alpha**2 * (n + kappa) - n
         c = n + lam
 
         self._wm = np.full(2 * n + 1, 1.0 / (2 * c))
         self._wc = np.full(2 * n + 1, 1.0 / (2 * c))
         self._wm[0] = lam / c
-        self._wc[0] = lam / c + (1 - alpha ** 2 + beta)
+        self._wc[0] = lam / c + (1 - alpha**2 + beta)
 
     def sigma_points(self, x: np.ndarray, P: np.ndarray) -> np.ndarray:
         """Generate sigma points."""
@@ -149,7 +153,7 @@ class MerweScaledSigmaPoints(SigmaPoints):
         sigma_points = np.zeros((2 * n + 1, n))
         sigma_points[0] = x
 
-        lam = self.alpha ** 2 * (n + self.kappa) - n
+        lam = self.alpha**2 * (n + self.kappa) - n
         S = safe_cholesky(((n + lam) * P).astype(float), lower=False)
 
         for i in range(n):

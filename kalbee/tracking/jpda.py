@@ -14,7 +14,12 @@ class JPDAAssociation:
     probability P_d.
     """
 
-    def __init__(self, p_d: float = 0.9, clutter_density: float = 1e-4, gate_threshold: float = 9.21):
+    def __init__(
+        self,
+        p_d: float = 0.9,
+        clutter_density: float = 1e-4,
+        gate_threshold: float = 9.21,
+    ):
         """
         Args:
             p_d: Probability of detection.
@@ -85,12 +90,14 @@ class JPDAAssociation:
                 meas = z[j].reshape(-1, 1)
                 innov = meas - z_pred
                 d = mahalanobis_distance(innov, S)
-                d2 = d ** 2
+                d2 = d**2
                 if d2 <= self.gate_threshold:
                     gated[i, j] = True
                     exponent = -0.5 * (innov.T @ S_inv @ innov).item()
                     exponent = np.clip(exponent, -700, 700)
-                    likelihoods[i, j] = (1.0 / np.sqrt((2 * np.pi) ** m * det_S)) * np.exp(exponent)
+                    likelihoods[i, j] = (
+                        1.0 / np.sqrt((2 * np.pi) ** m * det_S)
+                    ) * np.exp(exponent)
 
         # Compute marginal probabilities (JPDA approximation via normalized likelihoods)
         beta = np.zeros((N, M + 1))
@@ -102,7 +109,9 @@ class JPDAAssociation:
             for j in range(M):
                 if gated[i, j]:
                     # Likelihood weighted by P_d / clutter_density
-                    beta[i, j + 1] = (self.p_d / max(1e-10, self.clutter_density)) * likelihoods[i, j]
+                    beta[i, j + 1] = (
+                        self.p_d / max(1e-10, self.clutter_density)
+                    ) * likelihoods[i, j]
 
             # Normalize across row
             row_sum = np.sum(beta[i])

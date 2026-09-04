@@ -8,7 +8,9 @@ from kalbee.modules.utils.gating import mahalanobis_distance
 class BernoulliTarget:
     """Represents a single detected target hypothesis in PMBM."""
 
-    def __init__(self, state: np.ndarray, covariance: np.ndarray, existence_prob: float = 0.5):
+    def __init__(
+        self, state: np.ndarray, covariance: np.ndarray, existence_prob: float = 0.5
+    ):
         self.state = state.copy()
         self.covariance = covariance.copy()
         self.existence_prob = existence_prob
@@ -114,13 +116,15 @@ class PMBMTracker:
                         P_upd = (np.eye(P.shape[0]) - K @ H) @ P
 
                         det_S = max(1e-10, np.linalg.det(S))
-                        likelihood = (1.0 / np.sqrt((2 * np.pi) ** meas.shape[0] * det_S)) * np.exp(
-                            -0.5 * d2
-                        )
+                        likelihood = (
+                            1.0 / np.sqrt((2 * np.pi) ** meas.shape[0] * det_S)
+                        ) * np.exp(-0.5 * d2)
                         r_det = (r * self.p_d * likelihood) / (
                             self.clutter_density + r * self.p_d * likelihood
                         )
-                        updated_targets.append(BernoulliTarget(x_upd, P_upd, existence_prob=r_det))
+                        updated_targets.append(
+                            BernoulliTarget(x_upd, P_upd, existence_prob=r_det)
+                        )
 
         # 2. Birth hypotheses from measurements (new target initiation)
         for j in range(M):
@@ -129,10 +133,14 @@ class PMBMTracker:
             x_birth = np.zeros((self.F.shape[0], 1))
             x_birth[: meas.shape[0]] = meas
             P_birth = np.eye(self.F.shape[0]) * 5.0
-            updated_targets.append(BernoulliTarget(x_birth, P_birth, existence_prob=self.birth_rate))
+            updated_targets.append(
+                BernoulliTarget(x_birth, P_birth, existence_prob=self.birth_rate)
+            )
 
         # 3. Prune low-probability targets
-        self.targets = [t for t in updated_targets if t.existence_prob >= self.prune_threshold]
+        self.targets = [
+            t for t in updated_targets if t.existence_prob >= self.prune_threshold
+        ]
 
         # Return confirmed targets (r >= 0.5)
         return [t for t in self.targets if t.existence_prob >= 0.5]

@@ -147,7 +147,7 @@ class HInfinityFilter(BaseFilter):
 
         # H-infinity modification: apply the robustness term
         # P_robust = P @ (I - gamma^{-2} * P)^{-1}
-        gamma_inv_sq = 1.0 / (self.gamma ** 2)
+        gamma_inv_sq = 1.0 / (self.gamma**2)
         I_n = np.eye(n)
 
         # Check if the H-infinity condition is satisfied

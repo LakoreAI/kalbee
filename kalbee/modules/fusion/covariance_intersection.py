@@ -76,7 +76,7 @@ def _find_optimal_omega(
         Optimal omega value.
     """
     best_omega = 0.5
-    best_trace = float('inf')
+    best_trace = float("inf")
 
     for i in range(steps + 1):
         omega = i / steps
@@ -121,8 +121,10 @@ def sequential_covariance_intersection(
     # Sequentially fuse with each subsequent estimate
     for mean_i, cov_i in estimates[1:]:
         fused_mean, fused_cov = covariance_intersection(
-            fused_mean, fused_cov,
-            mean_i, cov_i,
+            fused_mean,
+            fused_cov,
+            mean_i,
+            cov_i,
             omega=omega,
         )
 

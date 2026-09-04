@@ -94,9 +94,7 @@ class UnscentedRTSSmoother:
             G = P_cross @ safe_inv(P_pred)
 
             # Smoothed state and covariance update
-            smoothed_states[k] = x_filtered + G @ (
-                smoothed_states[k + 1] - x_pred
-            )
+            smoothed_states[k] = x_filtered + G @ (smoothed_states[k + 1] - x_pred)
             smoothed_covariances[k] = (
                 P_filtered + G @ (smoothed_covariances[k + 1] - P_pred) @ G.T
             )

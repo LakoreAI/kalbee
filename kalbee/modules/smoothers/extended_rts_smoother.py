@@ -67,10 +67,13 @@ class ExtendedRTSSmoother:
             else:
                 # Fall back to linear RTS smoother if no transition function
                 from kalbee.modules.smoothers.rts_smoother import RTSSmoother
+
                 return RTSSmoother.smooth(
-                    filtered_states, filtered_covariances,
-                    predicted_states, predicted_covariances,
-                    transition_matrix=np.eye(n)
+                    filtered_states,
+                    filtered_covariances,
+                    predicted_states,
+                    predicted_covariances,
+                    transition_matrix=np.eye(n),
                 )
 
             # Smoother gain: G_k = P_k|k @ F^T @ P_{k+1|k}^{-1}

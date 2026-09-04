@@ -97,8 +97,12 @@ class SquareRootUKF(BaseFilter):
         sigmas[0] = self.state.flatten()
 
         for i in range(n):
-            sigmas[i + 1] = self.state.flatten() + sqrt(n + self.lambda_) * self._S[:, i]
-            sigmas[n + i + 1] = self.state.flatten() - sqrt(n + self.lambda_) * self._S[:, i]
+            sigmas[i + 1] = (
+                self.state.flatten() + sqrt(n + self.lambda_) * self._S[:, i]
+            )
+            sigmas[n + i + 1] = (
+                self.state.flatten() - sqrt(n + self.lambda_) * self._S[:, i]
+            )
 
         return sigmas
 

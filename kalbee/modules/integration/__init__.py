@@ -15,6 +15,7 @@ def filter_dataframe(df, filter_obj, measurement_columns=None, **kwargs):
     if "polars" in module_name:
         try:
             from kalbee.modules.integration.polars import filter_dataframe as _filter
+
             return _filter(df, filter_obj, measurement_columns, **kwargs)
         except ImportError:
             raise ImportError(
@@ -24,6 +25,7 @@ def filter_dataframe(df, filter_obj, measurement_columns=None, **kwargs):
     elif "pandas" in module_name:
         try:
             from kalbee.modules.integration.pandas import filter_dataframe as _filter
+
             return _filter(df, filter_obj, measurement_columns, **kwargs)
         except ImportError:
             raise ImportError(
@@ -48,6 +50,7 @@ def filter_series(series, filter_obj, dt=1.0):
     if "polars" in module_name:
         try:
             from kalbee.modules.integration.polars import filter_series as _filter
+
             return _filter(series, filter_obj, dt)
         except ImportError:
             raise ImportError(
@@ -57,6 +60,7 @@ def filter_series(series, filter_obj, dt=1.0):
     elif "pandas" in module_name:
         try:
             from kalbee.modules.integration.pandas import filter_series as _filter
+
             return _filter(series, filter_obj, dt)
         except ImportError:
             raise ImportError(

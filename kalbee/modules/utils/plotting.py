@@ -28,21 +28,35 @@ def plot_trajectory(
     try:
         import matplotlib.pyplot as plt
     except ImportError:
-        raise ImportError("matplotlib is required. Install with: pip install kalbee[viz]")
+        raise ImportError(
+            "matplotlib is required. Install with: pip install kalbee[viz]"
+        )
 
     fig, ax = plt.subplots(1, 1, figsize=figsize)
 
     if true_positions is not None:
-        ax.plot(true_positions[:, 0], true_positions[:, 1],
-                'g-', linewidth=2, label='True')
+        ax.plot(
+            true_positions[:, 0], true_positions[:, 1], "g-", linewidth=2, label="True"
+        )
 
     if measured_positions is not None:
-        ax.scatter(measured_positions[:, 0], measured_positions[:, 1],
-                   c='red', s=10, alpha=0.5, label='Measured')
+        ax.scatter(
+            measured_positions[:, 0],
+            measured_positions[:, 1],
+            c="red",
+            s=10,
+            alpha=0.5,
+            label="Measured",
+        )
 
     if estimated_positions is not None:
-        ax.plot(estimated_positions[:, 0], estimated_positions[:, 1],
-                'b--', linewidth=2, label='Estimated')
+        ax.plot(
+            estimated_positions[:, 0],
+            estimated_positions[:, 1],
+            "b--",
+            linewidth=2,
+            label="Estimated",
+        )
 
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -51,7 +65,7 @@ def plot_trajectory(
     ax.grid(True, alpha=0.3)
 
     if save_path:
-        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+        plt.savefig(save_path, dpi=150, bbox_inches="tight")
     else:
         plt.show()
 
@@ -78,7 +92,9 @@ def plot_covariance(
     try:
         import matplotlib.pyplot as plt
     except ImportError:
-        raise ImportError("matplotlib is required. Install with: pip install kalbee[viz]")
+        raise ImportError(
+            "matplotlib is required. Install with: pip install kalbee[viz]"
+        )
 
     n = covariance_history[0].shape[0]
     T = len(covariance_history)
@@ -90,7 +106,11 @@ def plot_covariance(
 
     for i in range(n):
         std_devs = [np.sqrt(max(0.0, P[i, i])) for P in covariance_history]
-        ax.plot(range(T), std_devs, label=state_names[i] if i < len(state_names) else f"State {i}")
+        ax.plot(
+            range(T),
+            std_devs,
+            label=state_names[i] if i < len(state_names) else f"State {i}",
+        )
 
     ax.set_xlabel("Time Step")
     ax.set_ylabel("Standard Deviation (sqrt(P_ii))")
@@ -99,7 +119,7 @@ def plot_covariance(
     ax.grid(True, alpha=0.3)
 
     if save_path:
-        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+        plt.savefig(save_path, dpi=150, bbox_inches="tight")
     else:
         plt.show()
 
@@ -139,16 +159,21 @@ def plot_innovations(
 
     for i in range(m):
         ax = axes[i]
-        ax.plot(innovations[:, i], 'b-', alpha=0.7)
-        ax.axhline(y=0, color='k', linestyle='-', linewidth=0.5)
+        ax.plot(innovations[:, i], "b-", alpha=0.7)
+        ax.axhline(y=0, color="k", linestyle="-", linewidth=0.5)
 
         std = np.std(innovations[:, i])
-        ax.axhline(y=z_score * std, color='r', linestyle='--', alpha=0.5,
-                   label=f'{confidence*100:.0f}% bounds')
-        ax.axhline(y=-z_score * std, color='r', linestyle='--', alpha=0.5)
+        ax.axhline(
+            y=z_score * std,
+            color="r",
+            linestyle="--",
+            alpha=0.5,
+            label=f"{confidence * 100:.0f}% bounds",
+        )
+        ax.axhline(y=-z_score * std, color="r", linestyle="--", alpha=0.5)
 
-        ax.set_ylabel(f"Innovation {i+1}")
-        ax.legend(loc='upper right', fontsize=8)
+        ax.set_ylabel(f"Innovation {i + 1}")
+        ax.legend(loc="upper right", fontsize=8)
         ax.grid(True, alpha=0.3)
 
     axes[-1].set_xlabel("Time Step")
@@ -156,7 +181,7 @@ def plot_innovations(
     plt.tight_layout()
 
     if save_path:
-        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+        plt.savefig(save_path, dpi=150, bbox_inches="tight")
     else:
         plt.show()
 

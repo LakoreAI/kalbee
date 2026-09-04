@@ -237,9 +237,15 @@ class BaseFilter(ABC):
 
         if "transition_matrix" in state_dict and self.transition_matrix is not None:
             self.transition_matrix = np.array(state_dict["transition_matrix"])
-        if "transition_covariance" in state_dict and self.transition_covariance is not None:
+        if (
+            "transition_covariance" in state_dict
+            and self.transition_covariance is not None
+        ):
             self.transition_covariance = np.array(state_dict["transition_covariance"])
         if "measurement_matrix" in state_dict and self.measurement_matrix is not None:
             self.measurement_matrix = np.array(state_dict["measurement_matrix"])
-        if "measurement_covariance" in state_dict and self.measurement_covariance is not None:
+        if (
+            "measurement_covariance" in state_dict
+            and self.measurement_covariance is not None
+        ):
             self.measurement_covariance = np.array(state_dict["measurement_covariance"])

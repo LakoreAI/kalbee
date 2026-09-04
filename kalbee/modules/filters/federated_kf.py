@@ -86,8 +86,10 @@ class FederatedKalmanFilter:
         fused_mean, fused_cov = local_estimates[0]
         for mean_i, cov_i in local_estimates[1:]:
             fused_mean, fused_cov = covariance_intersection(
-                fused_mean, fused_cov,
-                mean_i, cov_i,
+                fused_mean,
+                fused_cov,
+                mean_i,
+                cov_i,
                 omega=self.omega,
             )
 

@@ -64,9 +64,7 @@ class FadingMemoryKalmanFilter(KalmanFilter):
                           the predicted covariance. Default is 1.05.
         """
         if fading_factor < 1.0:
-            raise ValueError(
-                f"Fading factor must be >= 1.0, got {fading_factor}"
-            )
+            raise ValueError(f"Fading factor must be >= 1.0, got {fading_factor}")
 
         super().__init__(
             state=state,

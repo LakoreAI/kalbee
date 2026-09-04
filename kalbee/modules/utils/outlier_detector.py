@@ -22,6 +22,7 @@ from scipy.stats import chi2
 @dataclass
 class DetectionResult:
     """Result of an outlier detection check."""
+
     is_inlier: bool
     nis_value: float
     threshold: float
@@ -149,10 +150,14 @@ class Chi2OutlierDetector:
             List of DetectionResult for each measurement.
         """
         results = []
-        T = innovations.shape[0] if hasattr(innovations, 'shape') else len(innovations)
+        T = innovations.shape[0] if hasattr(innovations, "shape") else len(innovations)
 
         for t in range(T):
-            v = innovations[t].reshape(-1, 1) if innovations[t].ndim == 1 else innovations[t]
+            v = (
+                innovations[t].reshape(-1, 1)
+                if innovations[t].ndim == 1
+                else innovations[t]
+            )
             S = innovation_covariances[t]
             results.append(self.check(v, S))
 

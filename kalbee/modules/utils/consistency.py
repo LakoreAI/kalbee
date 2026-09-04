@@ -74,6 +74,7 @@ def nis_test(
     p_value = 2.0 * (1.0 - np.abs(np.clip(z_stat, -6, 6)) / 6.0)
     # More precise: use survival function
     from scipy.stats import norm
+
     p_value = 2.0 * norm.sf(np.abs(z_stat))
 
     # Accept H0 if p-value > alpha
@@ -127,6 +128,7 @@ def nees_test(
 
     # Chi-squared goodness-of-fit test (same as NIS)
     from scipy.stats import norm
+
     std_nees = np.sqrt(2.0 * n / T)
     z_stat = (mean_nees - n) / std_nees
     p_value = 2.0 * norm.sf(np.abs(z_stat))
@@ -181,6 +183,7 @@ def innovation_whiteness_test(
 
     # Confidence bounds: approximately +/- 1.96 / sqrt(T) for 95% confidence
     from scipy.stats import norm
+
     bound = norm.ppf(1 - alpha / 2) / np.sqrt(T)
 
     passed = bool(np.all(np.abs(autocorr) < bound))

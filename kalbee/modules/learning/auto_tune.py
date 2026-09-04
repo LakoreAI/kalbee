@@ -23,6 +23,7 @@ from kalbee.modules.filters.kf_filter import KalmanFilter
 @dataclass
 class TuneResult:
     """Result of auto-tuning."""
+
     Q: np.ndarray
     R: np.ndarray
     nis_history: List[float] = field(default_factory=list)
@@ -106,14 +107,14 @@ def tune_kalman_filter(
             # NIS too high: filter is overconfident (Q too small or R too small)
             # Increase Q or R
             adjustment = learning_rate * (nis_ratio - target_nis_ratio)
-            Q *= (1.0 + adjustment)
-            R *= (1.0 + adjustment * 0.5)
+            Q *= 1.0 + adjustment
+            R *= 1.0 + adjustment * 0.5
         elif nis_ratio < target_nis_ratio:
             # NIS too low: filter is underconfident (Q too large or R too large)
             # Decrease Q or R
             adjustment = learning_rate * (target_nis_ratio - nis_ratio)
-            Q *= (1.0 - adjustment)
-            R *= (1.0 - adjustment * 0.5)
+            Q *= 1.0 - adjustment
+            R *= 1.0 - adjustment * 0.5
 
         # Ensure Q and R stay positive definite
         Q = _ensure_positive_definite(Q)
