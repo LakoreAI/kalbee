@@ -217,3 +217,14 @@ site/
 # Other files
 
 *.pdf
+kalbee.*
+
+# Downloaded benchmark datasets (scripts/fetch_mot16_02.py)
+data/
+
+# LaTeX build artifacts (.github/docs/kalbee.tex)
+.github/docs/*.aux
+.github/docs/*.fdb_latexmk
+.github/docs/*.fls
+.github/docs/*.log
+.github/docs/*.out

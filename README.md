@@ -27,6 +27,8 @@ All numbers are reproducible — see [docs/benchmarks.md](docs/benchmarks.md) an
 
 - **18 Filters**: KF, EKF, UKF, SigmaPointUKF, Particle Filter, Ensemble KF, Information Filter, Alpha-Beta-Gamma, Adaptive KF, Square-Root KF, Vectorized KF, Fading Memory KF, H-Infinity, Interacting Multiple Model (IMM), Invariant EKF (InEKF on SO(3)/SE(3)), Variational Bayes Adaptive KF (VBAKF), Cubature KF (CKF), and Rao-Blackwellized Particle Filter (RBPF)
 - **Advanced Tracking**: SORT-style `MultiObjectTracker`, Joint Probabilistic Data Association (`JPDAAssociation`), and Poisson Multi-Bernoulli Mixture (`PMBMTracker`) for multi-target tracking in heavy clutter
+- **Real-Video Examples**: bounding-box tracking of vehicles/people via YOLO (`examples/yolo_*.py`), plus a pedestrian-tracking demo on the real MOT16 dataset (`examples/mot16_pedestrian_tracking.py`, `scripts/mot16_demo.py`)
+- **Animated Demos**: `.gif` galleries built from the public API — see the [Examples & Gallery](docs/examples.md)
 - **Non-Linear Smoothers**: RTS Smoother, Extended RTS Smoother, Unscented RTS Smoother, and Fixed-Lag Smoother
 - **Asynchronous Sensor Fusion**: `AsyncSensorBuffer` for out-of-sequence measurements (OOSM) and multi-rate sensors
 - **Learning & Neural Filters**: Offline EM, Online EM, NIS Auto-Tuning, and PyTorch `KalmanNet` hybrid neural filter
@@ -74,6 +76,16 @@ kalbee demo --live --filter kf --signal sine   # animated terminal chart
 kalbee bench                                    # speed/accuracy across all filters
 kalbee new my_tracker.py                        # scaffold a starter script
 ```
+
+### See it before you read it
+
+![Kalman filter demo](docs/assets/gif/filter_demo.gif)
+
+Animated, runnable demos — filtering, IMM on maneuvering targets, and
+multi-object tracking of **real pedestrians** (MOT16) — live in the
+[Examples & Gallery](docs/examples.md), with vehicles/people bounding-box
+tracking examples in `examples/yolo_mot.py`, `examples/yolo_vehicles.py`,
+and `examples/yolo_people.py`.
 
 ## Quick Start
 
@@ -288,15 +300,26 @@ mkdocs serve
 ```
 
 - [Getting Started](docs/getting_started.md)
+- [Examples & Gallery](docs/examples.md) — animated demos + how-to recipes
 - **Filters**: [KF](docs/filters/kalman_filter.md) · [EKF](docs/filters/extended_kalman_filter.md) · [UKF](docs/filters/unscented_kalman_filter.md) · [SigmaPointUKF](docs/filters/sigma_point_ukf.md) · [PF](docs/filters/particle_filter.md) · [EnKF](docs/filters/ensemble_kalman_filter.md) · [IF](docs/filters/information_filter.md) · [ABG](docs/filters/alpha_beta_gamma_filter.md) · [AKF](docs/filters/adaptive_kalman_filter.md) · [Fading Memory KF](docs/filters/fading_memory_kf.md) · [H-Infinity](docs/filters/hinfinity_filter.md) · [SRKF](docs/filters/square_root_kalman_filter.md) · [Vectorized KF](docs/filters/vectorized_kalman_filter.md) · [IMM](docs/filters/interacting_multiple_model.md)
 - **Features**: [Sensor-Fusion Cookbook](docs/features/sensor_fusion_cookbook.md) · [scikit-learn Integration](docs/features/scikit_learn_integration.md) · [Gating](docs/features/gating.md) · [Outlier Detection](docs/features/outlier_detection.md) · [Auto-Tuning](docs/features/auto_tuning.md) · [Diagnostics](docs/features/diagnostics.md) · [Consistency Tests](docs/features/consistency_tests.md) · [RTS Smoother](docs/features/rts_smoother.md) · [Metrics](docs/features/metrics.md) · [Experiments](docs/features/experiments.md) · [Maneuvering Target Tracking](docs/features/maneuvering_target.md) · [YOLO Object Tracking](docs/features/yolo_tracking.md)
 - [CLI](docs/cli.md) · [Benchmarks](docs/benchmarks.md) · [Architecture](docs/architecture.md)
 
 ## Testing
 
+Tests mirror the package layout under `tests/` (filters, smoothers, models,
+tracking, fusion, learning, integration, utils, experiments, cli):
+
 ```bash
 uv run pytest tests/                                  # run the suite
 uv run pytest tests/ --cov=kalbee --cov-report=term   # with coverage
+```
+
+Lint and format with `ruff` (as CI does):
+
+```bash
+uv run ruff check .
+uv run ruff format --check .
 ```
 
 ## License

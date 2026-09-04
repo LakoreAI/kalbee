@@ -1,3 +1,9 @@
+%%
+%% A practitioner-oriented view of recursive Bayesian state estimation and
+%% multi-object tracking software: algorithms, engineering, and evaluation.
+%% The system described in the availability note (kalbee) is used purely as a
+%% concrete reference implementation of the ideas discussed here.
+%%
 \documentclass[10pt,conference]{IEEEtran}
 
 \usepackage{amsmath,amssymb}
@@ -19,617 +25,568 @@
   showstringspaces=false
 }
 
-\newcommand{\kalbee}{\textsc{kalbee}}
+\newcommand{\toolkit}{\textsc{kalbee}}
 
 \begin{document}
-\renewcommand{\arraystretch}{0.85}
+\renewcommand{\arraystretch}{0.9}
 
-\title{\kalbee: A Modular, Batteries-Included Python Library\\ for Kalman Filtering and State Estimation}
+\title{Reusable Software for Recursive State Estimation\\ and Multi-Object
+Tracking: Algorithms, Engineering, and Evaluation}
 
 \author{
 \IEEEauthorblockN{Le Duc Minh}
 \IEEEauthorblockA{Independent Developer\\
-Email: minh.leduc.0210@gmail.com\\
-Repository: \url{https://github.com/MinLee0210/kalbee}}
+\texttt{minh.leduc.0210@gmail.com}\\
+}
 }
 
 \maketitle
 
 \begin{abstract}
-State estimation via the Kalman filter and its many nonlinear and robust
-variants remains one of the most widely used tools in robotics, navigation,
-finance, and signal processing, yet the Python ecosystem for it is
-fragmented: existing libraries are either narrowly scoped, largely
-unmaintained, or so heavyweight that they impose a steep learning curve for
-routine tracking problems. This paper introduces \kalbee{}, an open-source
-(Apache-2.0) Python library that unifies eighteen filter variants, four
-smoothers, multi-target tracking, parameter-learning routines, and
-applied sensor-fusion recipes behind a single, consistent
-\texttt{BaseFilter} interface. We survey the closest prior art
-(FilterPy, pykalman, simdkalman, Stone Soup, and JAX-based differentiable
-filters), describe \kalbee{}'s architecture and numerical-stability
-guarantees, and report a reproducible, head-to-head benchmark against three
-of these libraries on an identical tracking task. The results show
-\kalbee{} reproduces reference implementations' accuracy exactly while its
-batched \texttt{VectorizedKalmanFilter} outperforms simdkalman's headline
-vectorization pitch by approximately $4\times$ on 1{,}000 concurrent
-series, at the cost of higher per-call overhead than a minimal
-single-filter implementation. We also describe two applied recipes
---- a quaternion attitude EKF with an exact process Jacobian, and a
-loosely-coupled GPS+IMU fusion filter --- and the developer-facing tooling
-(a scikit-learn-compatible estimator and a command-line interface) built
-to lower the barrier to adoption.
+Recursive Bayesian estimation---the Kalman filter and its nonlinear, robust,
+and adaptive descendants---underlies inertial navigation, sensor fusion,
+robotics, and multi-object tracking. Yet the gap between the elegant textbook
+recursion and software that is numerically stable, maintainable, and usable in
+a deployed system is wide, and is rarely discussed in the estimation
+literature. This paper treats the \emph{engineering} of such software as a
+first-class problem. We (i) frame filtering, smoothing, and multi-target
+tracking in a single Bayesian notation so that implementation decisions map to
+one shared vocabulary; (ii) catalogue the recurring failure modes---loss of
+covariance positive-definiteness, near-singular inverses, brittle
+interfaces, and evaluation that cannot be reproduced---and the defenses against
+them; (iii) argue for a small set of design patterns (a uniform filter
+interface, pluggable sigma-point strategies, ready-made model builders, and a
+factory for switching strategies) that let a single codebase span a dozen
+algorithms without duplicating application code; and (iv) describe a
+validation methodology based on normalized-innovation and normalized-estimation
+error consistency statistics rather than point estimates alone. Throughout, we
+illustrate the discussion with a freely available reference implementation.
+The result is a checklist, grounded in both theory and practice, for building
+or evaluating a state-estimation and tracking toolkit.
 \end{abstract}
 
 \begin{IEEEkeywords}
-Kalman filter, extended Kalman filter, unscented Kalman filter, state
-estimation, sensor fusion, multi-target tracking, open-source software,
-Python
+Kalman filter, recursive Bayesian estimation, sensor fusion, multi-object
+tracking, data association, numerical software, software design
 \end{IEEEkeywords}
 
 \section{Introduction}
 
-The Kalman filter~\cite{kalman1960} and its descendants --- the extended
-Kalman filter (EKF), the unscented Kalman filter
-(UKF)~\cite{julier2004unscented}, the cubature Kalman filter
-(CKF)~\cite{arasaratnam2009cubature}, and a long tail of robust and
-adaptive variants --- are the default tool for recursive state estimation
-under uncertainty. Applications span inertial navigation, GPS/IMU fusion,
-multi-object tracking, computational finance, and, increasingly, as a
-differentiable component inside learned perception pipelines. Despite this
-ubiquity, a practitioner reaching for Python today faces a fragmented
-choice:
+The Kalman filter~\cite{kalman1960} is the canonical solution to online
+estimation of the state of a linear system from noisy measurements. Its
+successors---the extended Kalman filter (EKF), unscented Kalman filter
+(UKF)~\cite{julier2004unscented}, cubature Kalman filter
+(CKF)~\cite{arasaratnam2009cubature}, particle filters, and a long tail of
+robust and adaptive variants---push the same predict/update recursion to
+nonlinear dynamics, non-Gaussian noise, and hostile operating conditions.
+Applications include attitude determination, GPS/IMU fusion, robotics, and
+multi-target tracking in radar and vision.
 
-\begin{itemize}
-\item \textbf{FilterPy}~\cite{filterpy} is the most widely known option,
-  built as the companion code for the pedagogical text \emph{Kalman and
-  Bayesian Filters in Python}. Its implementations favor a 1:1 mapping to
-  textbook equations over performance or breadth, and the project has seen
-  little maintenance activity in recent years.
-\item \textbf{pykalman}~\cite{pykalman} offers a minimal
-  KF/UKF/EM interface with a scikit-learn-flavored API, but has not added a
-  new filter type in years and does not track modern NumPy releases
-  smoothly.
-\item \textbf{simdkalman}~\cite{simdkalman} solves exactly one problem ---
-  vectorizing a linear KF across many independent series --- very well, but
-  offers no nonlinear filters, smoothers, or tracking utilities.
-\item \textbf{Stone Soup}~\cite{stonesoup}, maintained by the UK Defence
-  Science and Technology Laboratory (Dstl), is the most comprehensive
-  option: a full research framework for tracking, sensor management, and
-  data association. Its generality comes at the cost of a much larger
-  conceptual surface (trackers, hypothesisers, readers, feeders, and
-  component registries) that is arguably disproportionate for a developer
-  who just needs to fuse a GPS fix with an accelerometer reading.
-\item Differentiable, GPU-oriented implementations such as
-  \textbf{kalman-jax}~\cite{kalmanjax} target the machine-learning research
-  community and require adopting the JAX ecosystem wholesale.
-\end{itemize}
+A practitioner implementing these algorithms quickly discovers that the
+textbook recursion is the \emph{easy} part. The hard problems are numerical:
+covariances must remain symmetric positive-definite over long horizons;
+innovation covariances become near-singular under poor observability; and
+subtle indexing conventions for block-diagonal state vectors turn correct
+math into silently wrong estimates. A second class of problems is
+architectural: a library that exposes twenty filters but no common interface
+forces application code to be rewritten for each one, and a library whose
+interfaces are convenient only for the author's original use case will not
+survive contact with real data. A third class is methodological: how do we
+know a filter is working at all, and how do we compare implementations
+honestly?
 
-No existing library combines (i) broad algorithmic coverage, (ii) a single
-consistent interface across all filter types, (iii) numerically robust
-default implementations, (iv) applied, ready-to-use sensor-fusion recipes,
-and (v) developer-facing tooling that lowers the barrier from ``I found
-this on GitHub'' to ``I have a working tracker.'' \kalbee{} is designed to
-fill that gap.
+This paper organizes the accumulated answers to these questions into a
+coherent, largely framework-agnostic treatment, so that a reader can apply
+the advice to any language or library. Our contributions are:
 
-This paper makes the following contributions:
 \begin{enumerate}
-\item A survey and feature comparison of the current Python Kalman-filtering
-  ecosystem (Section~\ref{sec:related}).
-\item A description of \kalbee{}'s architecture, its common filter
-  interface, and the numerical-stability techniques applied uniformly
-  across all eighteen filter implementations (Section~\ref{sec:design}).
-\item Two applied sensor-fusion recipes --- a quaternion attitude EKF with
-  an exact (non-linearized) process Jacobian, and a loosely-coupled GPS+IMU
-  fusion filter --- packaged as tested, documented building blocks rather
-  than one-off scripts (Section~\ref{sec:cookbook}).
-\item A reproducible, honest benchmark against FilterPy, pykalman, and
-  simdkalman on an identical task, including a case where \kalbee{}
-  underperforms a minimal alternative (Section~\ref{sec:eval}).
+\item a unified Bayesian formulation of filtering, smoothing, and multi-target
+tracking with consistent notation (Section~\ref{sec:formulation});
+\item a taxonomy of algorithm families and the numerical/operational failure
+modes each one introduces (Sections~\ref{sec:taxonomy}
+and~\ref{sec:engineering});
+\item a small set of software design patterns that have proven sufficient to
+keep a broad algorithm suite maintainable and uniform
+(Section~\ref{sec:patterns});
+\item a validation and evaluation methodology grounded in filter consistency
+statistics and reproducible, honest benchmarks (Section~\ref{sec:validation});
+\item two short case studies---attitude estimation from an inertial
+measurement unit and multi-target tracking of pedestrians in real video---that
+exercise the full pipeline (Section~\ref{sec:case-studies}).
 \end{enumerate}
 
-\section{Related Work}
-\label{sec:related}
+We deliberately keep the exposition framework-agnostic; where a concrete
+reference implementation helps, we point to \toolkit{}, an open-source
+(Apache-2.0) library written in Python and NumPy, whose public interface and
+tests instantiate every pattern and validation idea below.
 
-Table~\ref{tab:comparison} summarizes the feature coverage of the five
-systems discussed above alongside \kalbee{}. We expand on each below.
+\section{Problem Formulation}
+\label{sec:formulation}
 
-\textbf{FilterPy}~\cite{filterpy} implements the KF, EKF, UKF, a
-Rauch--Tung--Striebel (RTS) smoother~\cite{rauch1965maximum}, a particle
-filter, an ensemble Kalman filter, and $g$-$h$/$\alpha$-$\beta$ filters. Its
-code intentionally prioritizes matching textbook notation over
-vectorization or defensive numerics, which makes it an excellent teaching
-tool but a less suitable foundation for production tracking systems that
-must run for long, unattended horizons without covariance collapse or
-divergence.
+\subsection{Recursive Bayesian filtering}
 
-\textbf{pykalman}~\cite{pykalman} exposes a compact
-\texttt{KalmanFilter} class with \texttt{filter}/\texttt{smooth}/\texttt{em}
-methods in an interface reminiscent of scikit-learn estimators. It covers
-only the linear KF, the UKF, and EM-based parameter learning; it has no
-concept of multi-target tracking, robust filtering, or square-root/
-information-form numerics.
+Let $x_k \in \mathbb{R}^n$ be the state at discrete time $k$ and $z_k \in
+\mathbb{R}^m$ a measurement. A dynamic system is described by a transition
+density and a measurement density,
+\begin{equation}
+x_k \sim p(x_k \mid x_{k-1}), \qquad
+z_k \sim p(z_k \mid x_k).
+\end{equation}
+Filtering maintains the posterior $p(x_k \mid z_{1:k})$ through two steps.
+The \emph{prediction} applies the Chapman--Kolmogorov equation,
+\begin{equation}
+p(x_k \mid z_{1:k-1}) = \int p(x_k \mid x_{k-1})\,
+p(x_{k-1} \mid z_{1:k-1})\, dx_{k-1},
+\end{equation}
+and the \emph{update} applies Bayes' rule,
+\begin{equation}
+p(x_k \mid z_{1:k}) \propto p(z_k \mid x_k)\,
+p(x_k \mid z_{1:k-1}).
+\label{eq:bayes}
+\end{equation}
+Every filter in this paper is a different way of representing the two
+densities in \eqref{eq:bayes}: moments for the Kalman filter and its
+Gaussian variants, a particle set for sequential Monte Carlo, and so on.
 
-\textbf{simdkalman}~\cite{simdkalman} vectorizes the KF predict/update
-recursion across the leading axis of a NumPy array, so that $N$ independent
-linear KF instances execute as a handful of batched matrix operations
-instead of $N$ Python-level loop iterations. This is a genuinely useful,
-narrow contribution — the project explicitly does not attempt to cover
-nonlinear filtering, smoothing, or tracking.
+For linear-Gaussian models, $x_k = F x_{k-1} + w_k$, $z_k = H x_k + v_k$
+with $w_k \sim \mathcal{N}(0,Q)$ and $v_k \sim \mathcal{N}(0,R)$, the
+posterior is Gaussian and is propagated exactly by the Kalman filter,
+\begin{align}
+\hat{x}_{k\mid k-1} &= F \hat{x}_{k-1},\qquad
+P_{k\mid k-1} = F P_{k-1} F^{\top} + Q, \\
+y_k &= z_k - H\hat{x}_{k\mid k-1}, \qquad
+S_k = H P_{k\mid k-1} H^{\top} + R, \\
+K_k &= P_{k\mid k-1} H^{\top} S_k^{-1}, \\
+\hat{x}_k &= \hat{x}_{k\mid k-1} + K_k y_k, \\
+P_k &= (I - K_k H) P_{k\mid k-1}.
+\end{align}
+The residual $y_k$ (innovation) and its covariance $S_k$ are central: their
+statistics are the primary diagnostic instrument for filter health.
 
-\textbf{Stone Soup}~\cite{stonesoup} is architected around composable
-components (predictors, updaters, hypothesisers, data associators, feeders,
-metrics) intended for tracking-algorithm \emph{research}, including
-multi-target tracking with the Probability Hypothesis Density (PHD) filter,
-Gromov flow particle filters, and sensor-management strategies. It is, by
-design, optimized for flexibility and experimental comparison rather than
-for the ergonomics of a developer who wants to \texttt{pip install} a
-tracker and start filtering within a few lines of code.
+\subsection{Nonlinear and non-Gaussian extensions}
 
-\textbf{kalman-jax}~\cite{kalmanjax} and related differentiable filters
-target Markov Gaussian-process inference with JIT compilation and
-autodiff, letting a user backpropagate through a filtering pipeline (e.g.,
-to learn $Q$/$R$ via gradient descent, or run on GPU/TPU). This class of
-tool assumes familiarity with JAX and is not intended as a general-purpose
-filtering library.
+When the dynamics or measurement model are nonlinear, $x_k = f(x_{k-1}) +
+w_k$, $z_k = h(x_k) + v_k$, no closed-form posterior exists in general. Three
+approximation families dominate:
 
-\begin{table*}[t]
-\centering
-\caption{Feature comparison of Python Kalman-filtering libraries (as of September 2026).}
-\label{tab:comparison}
-\begin{tabular}{lcccccc}
-\toprule
-\textbf{Feature} & \textbf{\kalbee{}} & \textbf{FilterPy} & \textbf{pykalman} & \textbf{simdkalman} & \textbf{Stone Soup} & \textbf{kalman-jax} \\
-\midrule
-Filter implementations                  & \textbf{18}         & $\sim$10            & 2                & 1                & $\sim$6              & 1 (GP-Kalman) \\
-Multi-object tracking (SORT/JPDA/PMBM)  & \checkmark           & --                & --               & --               & \checkmark (heavier)  & -- \\
-Smoothers                               & RTS/EKF/UKF/fixed-lag & RTS only          & RTS only         & --               & \checkmark            & \checkmark \\
-Parameter learning (EM, auto-tune)      & \checkmark           & --                & EM only          & --               & partial              & gradient-based \\
-Neural hybrid filter                    & \checkmark (KalmanNet) & --              & --               & --               & --                   & -- \\
-Vectorized / batched filtering          & \checkmark           & --                & --               & \checkmark        & --                   & \checkmark (JAX \texttt{vmap}) \\
-DataFrame (pandas/Polars) integration   & \checkmark           & --                & --               & --               & --                   & -- \\
-scikit-learn \texttt{fit}/\texttt{transform} API & \checkmark  & --                & partial          & --               & --                   & -- \\
-Command-line interface                  & \checkmark           & --                & --               & --               & --                   & -- \\
-GPU / autodiff backend                  & --                   & --                & --               & --               & --                   & \checkmark \\
-Actively maintained (2026)              & \checkmark           & mostly dormant    & mostly dormant   & mostly dormant   & \checkmark            & sporadic \\
-\bottomrule
-\end{tabular}
-\end{table*}
-
-The gap this table makes visible is not any single missing filter, but the
-absence of a library that is simultaneously broad, well-tested, and
-approachable. Stone Soup covers similar breadth but at a much higher
-conceptual cost; the narrower libraries (FilterPy, pykalman, simdkalman)
-each solve one slice of the problem well but none generalize.
-
-\section{Design and Architecture}
-\label{sec:design}
-
-\subsection{Common Filter Interface}
-
-Every filter in \kalbee{} subclasses an abstract \texttt{BaseFilter} that
-defines a uniform contract:
-
-\begin{lstlisting}
-class BaseFilter(ABC):
-    def predict(self, dt=1.0, **kwargs): ...
-    def update(self, measurement, **kwargs): ...
-    def measure(self, state=None): ...
-    def predict_only(self, dt=1.0, **kwargs): ...
-    def reset(self, state=None, covariance=None): ...
-    def filter_sequence(self, measurements,
-                         dt=1.0, missing=None): ...
-    def save_state(self, filepath): ...
-    def load_state(self, filepath): ...
-\end{lstlisting}
-
-Because every filter --- linear, nonlinear, particle-based, or
-information-form --- exposes the same \texttt{predict}/\texttt{update}
-pair, application code can swap a \texttt{KalmanFilter} for an
-\texttt{AdaptiveKalmanFilter} or a \texttt{SquareRootKalmanFilter} without
-modification. A factory class, \texttt{AutoFilter}, additionally allows
-filter selection by string name (e.g., \texttt{mode="ekf"}), which the
-CLI and the scikit-learn wrapper both build on (Section~\ref{sec:dx}).
-
-\subsection{Numerical Stability}
-
-Long-running or high-noise filtering is prone to covariance
-non-positive-definiteness from floating-point round-off. \kalbee{} applies
-three defenses uniformly:
 \begin{itemize}
-\item \textbf{Joseph-form covariance updates} in the KF, EKF, and
-  H-infinity filters, which are guaranteed positive semi-definite for any
-  gain $K$, rather than the algebraically-equivalent but numerically
-  fragile $P \leftarrow (I - KH)P$ form.
-\item \textbf{Symmetry enforcement}, $P \leftarrow (P + P^{\top})/2$, after
-  every covariance update.
-\item \textbf{Regularized/pseudo-inverse fallbacks} (\texttt{safe\_inv},
-  \texttt{safe\_cholesky} in \texttt{kalbee.modules.utils.linalg}) for
-  near-singular innovation covariances, plus a dedicated
-  \texttt{SquareRootKalmanFilter} and \texttt{SquareRootUKF} that propagate
-  the Cholesky factor of $P$ directly for applications where
-  positive-definiteness must never be violated.
+\item \textbf{Linearization (EKF).} Taylor-expand $f$ and $h$ around the
+current estimate and run the linear recursion with Jacobians
+$F_k=\partial f/\partial x$ and $H_k=\partial h/\partial x$. Cheap, but
+breaks down when the true posterior is not captured by the local linearization.
+When Jacobians are unavailable or error-prone, a central finite-difference
+Jacobian is a pragmatic, testable substitute.
+\item \textbf{Deterministic sampling (UKF, CKF).} Approximate the
+distribution by a small set of weighted points propagated through the exact
+nonlinearity---no Jacobians required. The unscented transform places
+$2n+1$ sigma points and is accurate to second order; the cubature rule uses
+$2n$ points and scales better in high dimensions~\cite{arasaratnam2009cubature}.
+\item \textbf{Stochastic sampling (particle filters).} Represent the
+posterior by $N$ weighted particles, giving an asymptotically exact
+approximation for arbitrary, possibly multimodal, non-Gaussian posteriors.
+Rao--Blackwellization marginalizes any conditionally linear substate, trading
+particle count for closed-form Kalman updates.
 \end{itemize}
 
-\subsection{Extensibility: The Sigma-Point Strategy Pattern}
+\subsection{Smoothing and parameter learning}
 
-Rather than hard-coding one sigma-point rule inside the UKF, \kalbee{}
-factors sigma-point generation into a pluggable
-\texttt{SigmaPoints} strategy (Simplex, Merwe-scaled, and Julier
-variants), so that \texttt{SigmaPointUKF(..., sigma\_points=} \texttt{MerweScaledSigmaPoints(n))}
-and its Simplex/Julier counterparts share one filter implementation. Adding
-a new filter follows the same pattern used throughout the codebase:
-subclass \texttt{BaseFilter}, implement \texttt{predict}/\texttt{update},
-and register the new class with \texttt{AutoFilter}.
+A filter is causal; a \emph{smoother} additionally conditions on future
+measurements. The Rauch--Tung--Striebel (RTS) smoother~\cite{rauch1965maximum}
+runs the filter forward and a correction pass backward, and is the workhorse
+for offline estimation (mapping, trajectory post-processing, EM). Fixed-lag
+smoothing bounds the backward horizon for near-online use.
 
-\subsection{Module Layout}
+The same machinery supports \emph{learning}: if the model structure $F,H$ is
+known but the noise covariances $Q,R$ are not, expectation--maximization
+fits them by alternating the forward/backward pass (E-step) with a
+covariance update from the smoothed sufficient statistics
+(M-step)~\cite{shumway1982}. A cheaper, online alternative adapts $Q,R$ so
+that the innovation statistics match their theoretical distribution, which
+connects directly to the consistency diagnostics of
+Section~\ref{sec:validation}.
 
-The package is organized by concern: \texttt{modules/filters} (18 filter
-classes plus the procedural functional API), \texttt{modules/smoothers}
-(RTS, extended RTS, unscented RTS, fixed-lag), \texttt{modules/fusion}
-(covariance intersection, track-to-track fusion, an asynchronous
-out-of-sequence-measurement buffer), \texttt{modules/learning} (offline/
-online EM, NIS-based auto-tuning, a PyTorch \texttt{KalmanNet} hybrid),
-\texttt{modules/integration} (pandas, Polars, and scikit-learn adapters),
-\texttt{tracking} (multi-object tracking and data association), and
-\texttt{models} (ready-made motion/measurement models and the sensor-fusion
-cookbook described in Section~\ref{sec:cookbook}).
+\subsection{Multi-object tracking}
 
-\section{Algorithmic Coverage}
-\label{sec:algo}
+Multiple targets require not only filtering but \emph{data association}: which
+measurement belongs to which track, and which measurements are clutter. The
+canonical lightweight design---popularized as SORT~\cite{bewley2016sort}---is
+a bank of Kalman filters plus per-frame assignment:
+\begin{enumerate}
+\item predict each existing track;
+\item build a cost matrix (e.g.\ squared Mahalanobis distance using each
+track's innovation covariance) and solve the assignment with the Hungarian
+algorithm under a gating threshold;
+\item update matched tracks, age out unmatched ones, and instantiate tentative
+new tracks for unmatched detections;
+\item confirm a track only after $n_{\mathrm{init}}$ consecutive matches and
+delete it after $N_{\max}$ misses.
+\end{enumerate}
+Joint probabilistic data association (JPDA) and Poisson multi-Bernoulli
+mixture (PMBM) filters generalize this to principled treatment of clutter and
+track uncertainty, at higher computational and conceptual cost. All three
+share the same building blocks: per-target filters, an innovation
+covariance, and a gate. This is why a filtering library and a tracking
+library are naturally two layers of the same design rather than separate
+products.
 
-Table~\ref{tab:filters} enumerates \kalbee{}'s eighteen filter
-implementations. Beyond single-target filtering, \kalbee{} provides:
+\section{An Algorithmic Taxonomy}
+\label{sec:taxonomy}
 
-\textbf{Smoothing.} A standard RTS smoother for linear systems, an
-extended RTS smoother that linearizes at each backward step, an unscented
-RTS smoother, and a fixed-lag smoother for bounded-delay online smoothing.
+A library author must decide \emph{which} algorithms to implement and, more
+importantly, how a user should choose among them. The decision tree that has
+proved durable in practice is:
 
-\textbf{Multi-target tracking.} A SORT-style~\cite{bewley2016sort}
-\texttt{MultiObjectTracker} performs Hungarian-algorithm association with
-configurable gating, track initiation (\texttt{n\_init}), and track deletion
-(\texttt{max\_age}); \texttt{JPDAAssociation} implements joint probabilistic
-data association for cluttered scenes; and \texttt{PMBMTracker} implements
-a Poisson multi-Bernoulli mixture filter for principled track existence and
-birth/death modeling under heavy clutter.
+\begin{itemize}
+\item \textbf{Linear, Gaussian} $\rightarrow$ Kalman filter. Use the
+square-root or information form when numerics or many sensors demand it.
+\item \textbf{Nonlinear} $\rightarrow$ EKF if Jacobians are easy and the
+nonlinearity is mild; otherwise UKF/CKF (no derivatives).
+\item \textbf{Non-Gaussian / multimodal} $\rightarrow$ particle filter;
+Rao--Blackwellized particle filter if the model is partially linear.
+\item \textbf{Maneuvering targets} $\rightarrow$ interacting multiple models
+(IMM): run several filters with different process models in parallel and
+blend them by model likelihood. A cheap alternative is a fading-memory filter
+that inflates the predicted covariance by a factor $>1$ to discount stale
+data.
+\item \textbf{Unknown noise statistics} $\rightarrow$ adaptive filtering,
+EM, or innovation-based auto-tuning.
+\item \textbf{Multiple targets} $\rightarrow$ per-target filters plus an
+association layer (SORT/JPDA/PMBM).
+\item \textbf{Adversarial or uncertain models} $\rightarrow$ $H_\infty$
+filtering, which minimizes worst-case estimation error rather than assuming
+known noise.
+\end{itemize}
 
-\textbf{Parameter learning.} Offline expectation-maximization
-(\texttt{em\_kalman}) fits $Q$/$R$ from a batch of measurements; an online
-EM variant adapts them from a stream without retaining full history; and
-NIS-based auto-tuning (\texttt{tune\_kalman\_filter}, \texttt{quick\_tune})
-adjusts $Q$/$R$ so that the mean normalized innovation squared matches the
-measurement dimension, the standard consistency criterion for a
-well-tuned filter. A PyTorch \texttt{KalmanNet} module additionally allows
-the gain to be learned end-to-end when the process model is only
-approximately known.
+The critical insight for software design is that nearly all of these are
+variations on the same $\texttt{predict}/\texttt{update}$ contract; only the
+innards differ. That observation, more than any individual algorithm, drives
+the architecture of Section~\ref{sec:patterns}.
 
-\begin{table}[t]
-\centering
-\caption{Filter implementations in \kalbee{}.}
-\label{tab:filters}
-\small
-\begin{tabular}{p{0.32\linewidth}p{0.58\linewidth}}
-\toprule
-\textbf{Filter} & \textbf{Notes} \\
-\midrule
-KF & Standard linear Kalman filter, Joseph form \\
-EKF & First-order linearization via user-supplied Jacobians \\
-UKF / SigmaPointUKF & Unscented transform; pluggable sigma-point strategy \\
-CKF & Third-order spherical-radial cubature rule \\
-Particle Filter & Sequential Monte Carlo, non-Gaussian posteriors \\
-RBPF & Rao-Blackwellized PF, marginalizes linear substates \\
-Ensemble KF & Ensemble-based, high-dimensional systems \\
-Information Filter & Dual (inverse-covariance) form; multi-sensor fusion \\
-Alpha-Beta-Gamma & Constant-gain $O(1)$ tracker \\
-Adaptive KF & Online $Q$/$R$ estimation (IAE) \\
-Square-Root KF / UKF & Propagates the Cholesky factor of $P$ \\
-Cholesky KF & Cholesky-factor-based covariance update \\
-Vectorized KF & Batches $N$ independent filters via NumPy broadcasting \\
-Fading Memory KF & Discounted covariance inflation, maneuvering targets \\
-H-Infinity & Robust, worst-case-bounded estimation \\
-IMM & Interacting Multiple Model (mode-switching) \\
-Invariant EKF & Error dynamics on SO(3)/SE(3) Lie groups \\
-VBAKF & Variational-Bayes adaptive KF \\
-Async KF & \texttt{async}/\texttt{await} interface for streaming sensors \\
-\bottomrule
-\end{tabular}
-\end{table}
+\section{Engineering a Filter Is Not the Same as Writing One}
+\label{sec:engineering}
 
-\section{Applied Sensor-Fusion Recipes}
-\label{sec:cookbook}
+Five concerns separate a working demo from software that survives deployment.
 
-A recurring pattern observed across dozens of unmaintained public
-repositories is a one-off script that fuses a gyroscope and accelerometer,
-or a GPS receiver and an accelerometer, hand-derived from scratch each
-time. \kalbee{} packages two such recipes as tested library functions.
+\subsection{Numerical stability}
 
-\subsection{Quaternion Attitude EKF}
+The textbook update $P_k = (I-KH)P_{k-1}$ is algebraically correct but
+numerically fragile: round-off can make $P$ lose symmetry and, worse,
+positive-definiteness, after which a Cholesky factorization or a
+log-likelihood evaluation fails or silently produces nonsense. Durable
+defenses, in increasing order of sophistication, are:
+\begin{enumerate}
+\item the Joseph form
+$P_k = (I-KH)P_{k-1}(I-KH)^{\top} + K R K^{\top}$, which is guaranteed
+positive semi-definite for any gain;
+\item explicit symmetrization $P \leftarrow (P+P^{\top})/2$ after every
+covariance update;
+\item \emph{condition-aware} inversion. Plain $\mathrm{inv}(S)$ returns
+garbage without raising for near-singular $S$; checking the condition number
+and falling back to a regularized or pseudo-inverse gives predictable
+behavior instead of silent corruption;
+\item square-root forms that propagate the Cholesky factor of $P$
+directly, keeping the covariance implicitly positive-definite by
+construction.
+\end{enumerate}
+A reference implementation should apply these policies \emph{uniformly}
+through one shared linear-algebra helper rather than ad hoc in each filter.
 
-Orientation is estimated as a unit quaternion
-$q = [w,x,y,z]^{\top}$ (Hamilton convention, body-to-world). Given a
-body-frame angular-velocity reading $\boldsymbol\omega$ over a step
-$\Delta t$, the exact integral of constant angular velocity is the delta
-quaternion
+\subsection{Determinism and reproducibility}
+
+Filters are increasingly used inside evaluation harnesses and learned
+pipelines. Seedable, isolated random streams (per-constructor random number
+generators that do not perturb global state) make particle and ensemble
+methods reproducible; giving every algorithmic constant a single home (one
+module-level constants registry) makes tuning repeatable.
+
+\subsection{State conventions}
+
+Batched or multi-axis states invite ordering bugs. A library that fixes one
+convention---e.g.\ block-per-axis layout ``$[\text{axis}_1,\; v_1,\;
+\text{axis}_2,\; v_2,\ldots]$''---and expresses all model builders
+(``constant velocity'', ``constant turn'', ``measurement of position'')
+through that convention eliminates an entire class of silent errors and makes
+the corresponding tests trivial to write.
+
+\subsection{Irregular data}
+
+Real streams drop measurements, arrive asynchronously, or arrive out of order.
+A filter API should therefore treat ``predict-only'' steps as first-class
+(no measurement this tick), support batch processing over sequences with an
+explicit ``missing'' sentinel, and offer an out-of-sequence-measurement buffer
+for multi-rate sensors.
+
+\subsection{Optional dependencies}
+
+A modern estimation library will want DataFrame and scikit-learn
+integrations, terminal demos, plotting, and (sometimes) PyTorch. None of
+these belong in the core dependency set; the core should import only the
+numerics stack, with integrations loaded lazily or behind extras.
+
+\section{Design Patterns}
+\label{sec:patterns}
+
+The following five patterns, each simple in isolation, compose into a library
+that can host a dozen algorithms without forking application code.
+
+\subsection{A uniform filter interface}
+
+Define one abstract filter with the two essential operations and a handful of
+secondary conveniences,
+\begin{lstlisting}
+class Filter(ABC):
+    def predict(self, dt=1.0, **kw): ...
+    def update(self, measurement, **kw): ...
+    def measure(self, state=None): ...       # state -> measurement space
+    def predict_only(self, dt=1.0, **kw): ...
+    def reset(self, state=None, covariance=None): ...
+    def filter_sequence(self, measurements, dt=1.0, missing=None): ...
+\end{lstlisting}
+Because every filter---linear, nonlinear, particle-based, or information
+form---obeys the same contract, a user can swap a Kalman filter for an
+adaptive or square-root variant by changing one line, and the entire
+higher-level machinery (tracking, tuning, DataFrame integration, diagnostics)
+works unchanged.
+
+\subsection{Strategy objects for pluggable internals}
+
+Hard-coding one sigma-point rule inside the UKF prevents experimentation.
+Factoring the rule into a small strategy object
+(\texttt{SimplexSigmaPoints}, \texttt{MerweScaledSigmaPoints},
+\texttt{JulierSigmaPoints}) lets a single filter implementation expose every
+variant through constructor injection. The same idea recurs for measurement
+gates and association algorithms.
+
+\subsection{Ready-made model builders}
+
+Users should not re-derive $F$, $Q$, $H$, $R$ by hand for the standard
+motion/measurement families. A small set of parameterized builders
+(constant-velocity, constant-acceleration, coordinated-turn, position
+measurement) returns the matrices consistent with the library's state
+convention, so a ``correct'' model is obtained by construction and every
+documented example shares it.
+
+\subsection{A factory for strategy selection}
+
+String-based construction (\texttt{mode="ekf"}, \texttt{mode="ukf"}, \dots)
+lets configuration files, CLIs, and hyperparameter sweeps choose filters
+without importing them. It also gives integration layers (a
+scikit-learn-style estimator, a command-line benchmark) a single entry point.
+
+\subsection{Procedural alongside object-oriented}
+
+Many users come from FilterPy-style code and want functions
+($\texttt{predict}(x,P,F,Q)$ returning the new pair) as much as stateful
+objects. Exposing both on top of the same math is cheap and dramatically
+widens adoption; one should be a thin wrapper over the other so they cannot
+drift apart.
+
+\subsection{Batching as an implementation detail}
+
+When $N$ independent series must be filtered (many tracked objects, many
+replicates), a naive per-series loop wastes the vectorized hardware.
+A \emph{vectorized filter} that broadcasts every matrix operation over a
+leading batch axis delivers large speedups while preserving the uniform
+interface---users switch \texttt{KalmanFilter} to a batched subclass, not to a
+separate library.
+
+\section{Validation and Evaluation}
+\label{sec:validation}
+
+\subsection{Consistency statistics beat point estimates}
+
+A single RMSE number cannot distinguish a well-tuned filter from a lucky one.
+The standard theory-backed diagnostics are the normalized innovation squared
+(NIS) and normalized estimation error squared (NEES). For a consistent
+filter, each is chi-squared distributed with, respectively, $m$ and $n$
+degrees of freedom~\cite{bar2011estimation}:
 \begin{equation}
-\Delta q = \left[\cos\tfrac{\theta}{2},\ \hat{\boldsymbol\omega}\sin\tfrac{\theta}{2}\right]^{\top},
-\qquad \theta = \lVert\boldsymbol\omega\rVert\,\Delta t,
+\mathrm{NIS}_k = y_k^{\top} S_k^{-1} y_k \sim \chi^2_m, \qquad
+\mathrm{NEES}_k = e_k^{\top} P_k^{-1} e_k \sim \chi^2_n,
 \end{equation}
-and the process model is the Hamilton product $q_{k+1} = q_k \otimes
-\Delta q$. Because $\Delta q$ does not depend on $q_k$, this update is
-\emph{linear} in the state, and its EKF process Jacobian is the exact
-right-multiplication matrix $R(\Delta q)$ of $\Delta q$ --- not a
-first-order approximation, which distinguishes it from most EKF process
-Jacobians:
-\begin{equation}
-F_k = \frac{\partial q_{k+1}}{\partial q_k} = R(\Delta q).
-\end{equation}
-The measurement model predicts the (unit) accelerometer reading as gravity
-rotated into the body frame, $h(q) = R(q)^{\top}\,[0,0,1]^{\top}$, with an
-analytic Jacobian cross-checked in the test suite against a
-finite-difference Jacobian (Section~\ref{sec:dx}).
+where $e_k = x_k - \hat{x}_k$ uses the true state (available in simulation or
+with ground truth). Averaging NIS/NEES over a run and comparing against the
+expected value detects over- and under-confidence; the innovation
+autocorrelation (whiteness test) detects model mismatch. Consistency tests
+should be first-class library functions, because they are exactly what a
+developer needs when tuning $Q$ and $R$---and they are the theoretical basis
+for the innovation-based auto-tuners of Section~\ref{sec:formulation}.
 
-Two properties of this filter are worth stating explicitly because they
-are easy to get wrong and are rarely documented in the many ad hoc
-implementations available online. First, gravity alone cannot observe
-rotation about the vertical (yaw) axis --- any two orientations differing
-only in yaw predict the same accelerometer reading, so gyroscope noise on
-that axis random-walks uncorrected unless a magnetometer or GPS-course
-update is added. Second, because this is a \emph{naive} quaternion-state
-EKF (the raw four-vector is the filter state) rather than an error-state/
-multiplicative EKF, its linearization is only locally valid; supplying the
-raw accelerometer noise variance as $R$ allows single updates to overshoot
-the unit-quaternion manifold before renormalization, which degrades
-convergence markedly. In our test scenario (3-axis rotation at
-$\sim$0.05--0.15\,rad/s, 5\,s at 100\,Hz), using the literal sensor noise
-variance ($R = 0.02^2 I$) produced a final orientation error that grew
-past $20^{\circ}$, while inflating $R$ to $0.05\,I$ --- a design choice, not
-a change to the physical noise --- reduced the same scenario's error to
-under $1^{\circ}$ across multiple random seeds. We report this not as a
-flaw to hide but as exactly the kind of tuning knowledge a reusable
-library should encode once, in documentation and tests, rather than
-leaving each downstream user to rediscover independently.
+\subsection{Reproducible, honest benchmarks}
 
-\subsection{Loosely-Coupled GPS + IMU Fusion}
+Benchmarks are only useful if the task, the data, and the reference
+implementations are public and the results are reported without cherry-picking.
+Concretely: fix one task (same $F,Q,H,R$, same measurement sequence), compare
+against reference libraries on identical inputs, and report \emph{both} the
+case the new library wins and the case it loses. In our reference suite, a
+purpose-built vectorized filter outperforms a dedicated batching library by
+roughly $4\times$ on 1{,}000 concurrent series, while a minimal single-purpose
+library still has lower per-call overhead for one bare filter loop---both
+results are worth stating, because they tell different users different truths.
 
-Rather than implementing a dedicated inertial-navigation mechanization,
-\kalbee{} reuses the existing control-input term of the standard KF predict
-step, $x \leftarrow Fx + Bu$. A helper,
-\texttt{imu\_velocity\_control(dt, n\_dims)}, builds
-\begin{equation}
-B = \begin{bmatrix} \tfrac{1}{2}\Delta t^2 \\ \Delta t \end{bmatrix}
-\ \text{(per axis, block-diagonal across axes)},
-\end{equation}
-so that feeding a gravity-compensated, world-frame accelerometer reading
-as $u$ at every IMU tick advances position and velocity exactly as a
-constant-acceleration integration step would, while a GPS position fix
-arriving at a much lower rate triggers a standard measurement update
-through the existing \texttt{position\_measurement\_model} builder. This
-reduces GPS+IMU fusion to $\sim$10 lines of application code with no
-custom filter subclass required.
+\subsection{Testing the math}
 
-\section{Developer Experience and Tooling}
-\label{sec:dx}
+Regression tests should include cross-checks between algebraically equivalent
+implementations (e.g.\ square-root vs.\ standard Kalman filter must agree to
+machine precision), closed-form one-step numerical answers, analytic vs.\
+finite-difference Jacobians, and stress cases (zero time step, extreme noise,
+exactly singular innovation covariance). These tests are the real
+documentation of numerical policy.
 
-Beyond algorithmic coverage, \kalbee{} includes several features aimed
-specifically at lowering the time-to-first-success for a new user.
+\section{Case Studies}
+\label{sec:case-studies}
 
-\textbf{\texttt{numerical\_jacobian}.} Deriving an EKF's Jacobians by hand
-is a common source of setup bugs. \kalbee{} provides a central
-finite-difference Jacobian utility that turns any
-\texttt{transition\_function}/\texttt{measurement\_function} into a working
-\texttt{F}/\texttt{H} without manual differentiation, at the cost of one
-extra function evaluation per state dimension per step.
+\subsection{Attitude estimation from an inertial measurement unit}
 
-\textbf{scikit-learn integration.} \texttt{KalmanEstimator} wraps any
-\kalbee{} filter behind \texttt{fit}/\texttt{transform}/\texttt{predict},
-so it composes with \texttt{sklearn.pipeline.Pipeline} and
-\texttt{GridSearchCV}. Each \texttt{transform} call resets the underlying
-filter to its initial state before running, so repeated or parallel calls
-do not leak state --- a subtlety that a naive wrapper around a stateful
-filter object would otherwise get wrong.
+A common, instructive problem: estimate orientation from a gyroscope
+(process: integrate angular velocity) corrected by an accelerometer
+(measurement: the direction of gravity in the body frame). With a unit
+quaternion $q=[w,x,y,z]^{\top}$ as the state, a constant-angular-velocity
+step integrates to a delta quaternion and the process model is the quaternion
+product, which is \emph{linear} in the state---its Jacobian is the exact
+right-multiplication matrix of the delta quaternion, not an approximation.
+Two lessons recur. First, observability: gravity alone cannot observe yaw;
+without a magnetometer or course measurement, yaw noise random-walks
+uncorrected. Second, naive quaternion-state EKFs linearize only locally, so
+over-aggressive measurement noise assumptions cause the corrected state to
+leave the unit manifold before renormalization; the documented remedy
+(inflate the assumed $R$ modestly) is precisely the kind of hard-won tuning
+knowledge that belongs in a library's documentation and tests, not in the head
+of its author. A general treatment of quaternion kinematics is given
+in~\cite{sola2017quaternion}.
 
-\textbf{Command-line interface.} \texttt{kalbee demo}, \texttt{kalbee
-bench}, and \texttt{kalbee new} let a user see a filter tracking a signal,
-compare filter speed/accuracy, or scaffold a starter script without
-writing any code. The \texttt{--live} flag renders an animated,
-Unicode-block-sparkline view of the true signal, the noisy measurement,
-and the filtered estimate directly in the terminal, updated every
-predict/update step via the \texttt{rich} library.
+\subsection{Pedestrian multi-target tracking in real video}
 
-\textbf{Typed public API.} The package ships a \texttt{py.typed} marker
-(PEP 561) and a \texttt{mypy} configuration, giving IDE autocompletion and
-static type checking for the public API surface.
+To exercise the whole stack, we track pedestrians in the public MOT16
+benchmark sequence \texttt{MOT16-02}~\cite{mot16}: each ground-truth box
+$[x_1,y_1,x_2,y_2]$ is treated as a four-axis measurement and fed to the
+per-corner constant-velocity bank with gated Hungarian association. The
+tracker keeps stable identities through brief occlusions and confirms tracks
+only after consecutive detections; overlaying the filtered boxes on the real
+frames makes association behavior legible in a way that synthetic data cannot.
+The same tracker, fed by a YOLO detector instead of ground truth, becomes a
+real-time vehicle/person tracker; the only change is the source of the boxes.
+This underlines the layering argument of Section~\ref{sec:formulation}: the
+filtering core never needs to know what produced the measurements.
 
-\section{Experimental Evaluation}
-\label{sec:eval}
+\section{Related Work}
 
-\subsection{Methodology}
+\paragraph{FilterPy} provides pedagogical, textbook-faithful implementations
+of the KF/EKF/UKF family and an RTS smoother, with no shared abstract base
+across all filters and little recent maintenance. It remains the clearest
+reference for learning the equations.
 
-We construct a single shared task --- tracking a noisy sine-wave position
-signal with a constant-velocity model ($\Delta t = 0.05$\,s, 200 steps,
-measurement noise $\sigma = 0.3$, process-noise scale $0.1$) --- and
-implement it identically (same $F$, $Q$, $H$, $R$, and measurement
-sequence) against \kalbee{}, FilterPy, pykalman, and simdkalman. The
-comparison script is published alongside the library so the results below
-are independently reproducible.\footnote{\texttt{scripts/compare\_benchmarks.py} in the \kalbee{} repository.}
-All timings are wall-clock means over multiple repetitions on the same
-machine in the same process.
+\paragraph{pykalman} offers a compact filter/smooth/EM interface in the
+scikit-learn idiom, restricted to the linear-Gaussian model.
 
-\subsection{Correctness}
+\paragraph{simdkalman} vectorizes the linear KF across a leading axis---a
+narrow, well-executed contribution with no nonlinear or tracking support.
 
-All three linear-KF implementations (\kalbee{}, FilterPy, pykalman)
-produce \emph{bit-for-bit identical} position RMSE (0.6380) on the shared
-task. This is a useful cross-check: it confirms \kalbee{}'s
-\texttt{KalmanFilter} implements the standard predict/update equations
-correctly rather than merely ``close enough.''
+\paragraph{Stone Soup} is a component-based research framework from the
+defence community covering the full tracking pipeline (hypothesisers,
+associators, metrics) at a much higher conceptual cost than a library whose
+users mostly need ``fuse a GPS fix with an accelerometer.''
 
-\subsection{Single-Series Speed}
+\paragraph{Differentiable filters} (e.g.\ JAX-based Kalman smoothing) target
+learning-based pipelines and assume the user adopts the autodiff ecosystem
+wholesale.
 
-Table~\ref{tab:bench-single} reports per-run wall-clock time for a single
-filter stepping through the 200-sample series once.
+The common thread relevant to this paper is that none of these systems treats
+numerical-stability policy, consistency diagnostics, and interface uniformity
+as parts of the same design problem---which is the gap this paper addresses.
 
-\begin{table}[t]
-\centering
-\caption{Single-series timing on the shared tracking task.}
-\label{tab:bench-single}
-\begin{tabular}{lrr}
-\toprule
-\textbf{Library} & \textbf{Time / run (ms)} & \textbf{Position RMSE} \\
-\midrule
-FilterPy   & 6.9  & 0.6380 \\
-\kalbee{}  & 12.5 & 0.6380 \\
-simdkalman & 25.5 & 0.6745 \\
-pykalman   & 34.1 & 0.6380 \\
-\bottomrule
-\end{tabular}
-\end{table}
+\section{Discussion and Conclusion}
 
-FilterPy's minimal, single-purpose implementation has lower per-call
-overhead than \kalbee{} for one bare \texttt{predict}/\texttt{update} loop
---- unsurprising, since FilterPy does strictly less (no batching support,
-no shared abstract base class dispatch, seventeen fewer filter types to
-keep interoperable). \kalbee{} is nonetheless faster than both pykalman and
-simdkalman's single-series code path in this setting.
+Recursive estimation is easy to implement and hard to operationalize. This
+paper has argued that the hard parts are systematically addressable: a uniform
+Bayesian formulation keeps the algorithm space navigable; condition-aware
+numerics and square-root forms prevent the silent failures that plague naive
+implementations; five modest design patterns keep a broad algorithm suite
+maintainable; and consistency statistics, rather than point metrics, provide
+the feedback loop that makes tuning and evaluation scientific. We have
+illustrated each point with a freely available reference implementation
+(the \toolkit{} library), whose public interface, model builders, and test
+suite instantiate the advice above and whose MOT16 case study runs on real
+pedestrian footage.
 
-\subsection{Vectorized Throughput}
-
-The single-series result understates \kalbee{}'s intended use case at
-scale. Table~\ref{tab:bench-vec} repeats the same task across 1{,}000
-independent series --- e.g., 1{,}000 simultaneously tracked
-objects --- comparing a naive per-series Python loop, \kalbee{}'s
-purpose-built \texttt{VectorizedKalmanFilter} (which batches every filter
-through the same \texttt{F @ x}, \texttt{F @ P @ F.T} NumPy call instead
-of iterating), and simdkalman, whose entire value proposition is exactly
-this scenario.
-
-\begin{table}[t]
-\centering
-\caption{Vectorized throughput over 1{,}000 independent series.}
-\label{tab:bench-vec}
-\begin{tabular}{lr}
-\toprule
-\textbf{Approach} & \textbf{Total time (ms)} \\
-\midrule
-\kalbee{}, naive per-series loop        & 13{,}442 \\
-simdkalman, batched                     & 728 \\
-\kalbee{}, \texttt{VectorizedKalmanFilter} & \textbf{184} \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\kalbee{}'s vectorized filter is approximately $4\times$ faster than
-simdkalman and $73\times$ faster than the naive loop over the same
-1{,}000 series, while sharing the same \texttt{predict}/
-\texttt{update}/\texttt{filter\_sequence} interface as every other filter
-in the library --- a user does not adopt a separate vectorization library,
-only a different \texttt{BaseFilter} subclass.
-
-\subsection{Summary}
-
-The evaluation supports a specific, non-universal claim: \kalbee{}
-reproduces reference accuracy exactly, is competitive but not
-best-in-class on bare single-filter overhead, and is the fastest option
-evaluated for batched multi-series filtering. We consider this an honest
-result more useful to a prospective adopter than an unqualified
-``fastest'' claim would be.
-
-\section{Discussion and Limitations}
-
-\textbf{Typing coverage.} \texttt{py.typed} and a \texttt{mypy}
-configuration are in place, and all newly added modules (the CLI, the
-sensor-fusion cookbook, the scikit-learn adapter, the Jacobian utility)
-type-check cleanly. Retrofitting strict typing across the $\sim$30
-pre-existing filter and smoother modules --- most of whose gaps stem from
-\texttt{Optional[np.ndarray]} attributes on \texttt{BaseFilter} not being
-narrowed before use --- remains future work rather than a claim we make
-here.
-
-\textbf{No GPU/autodiff backend.} Unlike kalman-jax, \kalbee{} does not
-currently offer a JAX or GPU-accelerated backend. This is a deliberate
-scope decision rather than an oversight: a differentiable backend is a
-parallel implementation surface, not an incremental feature, and is left
-as future work pending demonstrated demand.
-
-\textbf{Yaw observability.} As discussed in Section~\ref{sec:cookbook},
-the shipped attitude EKF cannot observe yaw from accelerometer data alone;
-this is a property of the sensing modality, not a filter defect, but it is
-worth restating as a limitation of the \emph{recipe} as shipped, absent a
-magnetometer or course-over-ground update.
-
-\section{Conclusion and Future Work}
-
-We presented \kalbee{}, a Python library that consolidates eighteen
-Kalman-filter variants, four smoothers, multi-target tracking, parameter
-learning, and two applied sensor-fusion recipes behind one consistent
-interface, and evaluated it honestly against the closest prior art on a
-reproducible benchmark. The results show \kalbee{} matches reference
-accuracy, trades a modest amount of single-filter overhead for far greater
-breadth, and substantially outperforms a comparable vectorization-focused
-library at the batched-tracking workload that motivated it. Future work
-includes a JAX-based autodiff/GPU backend for gradient-based noise-covariance
-tuning and large-scale parallel filtering, a magnetometer-augmented
-attitude filter for full observability, and completing the strict-typing
-retrofit across the legacy filter modules.
+Two limitations deserve restatement. First, a deterministic
+sigma-point/particle-free stack has no GPU/autodiff backend; gradient-based
+noise learning and large-scale parallel filtering remain a separate,
+parallel implementation surface. Second, strict static typing across a
+long-lived numerical codebase---particularly narrowing
+$\texttt{Optional[np.ndarray]}$ attributes on the base filter---is valuable
+but must be retrofitted incrementally rather than assumed. We consider both
+honest statements of scope rather than defects.
 
 \section*{Availability}
-\kalbee{} is released under the Apache License 2.0 and is available on
-PyPI (\texttt{pip install kalbee}) and at
-\url{https://github.com/MinLee0210/kalbee}, with documentation at
-\url{https://minlee0210.github.io/kalbee}.
+The reference implementation used throughout is released under the Apache
+License 2.0, installable from PyPI and available at
+\url{https://github.com/LakoreAI/kalbee}, with documentation at
+\url{https://lakoreai.github.io/kalbee}. Data for the pedestrian case study is
+from the MOT Challenge~\cite{mot16} (\url{https://motchallenge.net}); a small
+fetcher script downloads only the needed sequence.
 
 \begingroup
 \small
-\begin{thebibliography}{00}
+\begin{thebibliography}{99}
 
-\bibitem{kalman1960} R. E. Kalman, ``A new approach to linear filtering and
-prediction problems,'' \emph{Journal of Basic Engineering}, vol. 82, no. 1,
-pp. 35--45, 1960.
+\bibitem{kalman1960} R.~E. Kalman, ``A new approach to linear filtering and
+prediction problems,'' \emph{Journal of Basic Engineering}, vol.~82, no.~1,
+pp.~35--45, 1960.
 
-\bibitem{julier2004unscented} S. J. Julier and J. K. Uhlmann, ``Unscented
+\bibitem{julier2004unscented} S.~J. Julier and J.~K. Uhlmann, ``Unscented
 filtering and nonlinear estimation,'' \emph{Proceedings of the IEEE},
-vol. 92, no. 3, pp. 401--422, 2004.
+vol.~92, no.~3, pp.~401--422, 2004.
 
-\bibitem{arasaratnam2009cubature} I. Arasaratnam and S. Haykin, ``Cubature
-Kalman filters,'' \emph{IEEE Transactions on Automatic Control}, vol. 54,
-no. 6, pp. 1254--1269, 2009.
+\bibitem{arasaratnam2009cubature} I.~Arasaratnam and S.~Haykin, ``Cubature
+Kalman filters,'' \emph{IEEE Transactions on Automatic Control}, vol.~54,
+no.~6, pp.~1254--1269, 2009.
 
-\bibitem{rauch1965maximum} H. E. Rauch, F. Tung, and C. T. Striebel,
+\bibitem{rauch1965maximum} H.~E. Rauch, F.~Tung, and C.~T. Striebel,
 ``Maximum likelihood estimates of linear dynamic systems,'' \emph{AIAA
-Journal}, vol. 3, no. 8, pp. 1445--1450, 1965.
+Journal}, vol.~3, no.~8, pp.~1445--1450, 1965.
 
-\bibitem{bewley2016sort} A. Bewley, Z. Ge, L. Ott, F. Ramos, and B.
-Upcroft, ``Simple online and realtime tracking,'' in \emph{Proc. IEEE
-International Conference on Image Processing (ICIP)}, 2016, pp. 3464--3468.
+\bibitem{shumway1982} R.~H. Shumway and D.~S. Stoffer, ``An approach to time
+series smoothing and forecasting using the EM algorithm,'' \emph{Journal of
+Time Series Analysis}, vol.~3, no.~4, pp.~253--264, 1982.
 
-\bibitem{sola2017quaternion} J. Sol\`{a}, ``Quaternion kinematics for the
+\bibitem{bar2011estimation} Y.~Bar-Shalom, X.~R. Li, and T.~Kirubarajan,
+\emph{Estimation with Applications to Tracking and Navigation}. New York,
+NY, USA: Wiley, 2001.
+
+\bibitem{bewley2016sort} A.~Bewley, Z.~Ge, L.~Ott, F.~Ramos, and B.~Upcroft,
+``Simple online and realtime tracking,'' in \emph{Proc. IEEE Int.\ Conf.\ on
+Image Processing (ICIP)}, 2016, pp.~3464--3468.
+
+\bibitem{sola2017quaternion} J.~Sol\`a, ``Quaternion kinematics for the
 error-state Kalman filter,'' \emph{arXiv preprint arXiv:1711.02508}, 2017.
 
-\bibitem{filterpy} R. Labbe, ``FilterPy: Python Kalman filtering and
-optimal estimation library,'' GitHub repository, 2014--present. [Online].
-Available: \url{https://github.com/rlabbe/filterpy}
+\bibitem{mot16} A.~Dendorfer \emph{et al.}, ``MOT16: A benchmark for
+multi-object tracking,'' \emph{arXiv preprint arXiv:1603.00831}, 2016.
 
-\bibitem{pykalman} pykalman contributors, ``pykalman: Kalman Filter,
-Smoother, and EM Algorithm for Python,'' GitHub repository. [Online].
-Available: \url{https://github.com/pykalman/pykalman}
+\bibitem{filterpy} R.~Labbe, ``FilterPy: Python Kalman filtering and optimal
+estimation library,'' GitHub repository. [Online]. Available:
+\url{https://github.com/rlabbe/filterpy}
 
-\bibitem{simdkalman} O. Seiskari, ``simdkalman: Python Kalman filters
-vectorized as Single Instruction, Multiple Data,'' GitHub repository.
-[Online]. Available: \url{https://github.com/oseiskar/simdkalman}
+\bibitem{pykalman} pykalman contributors, ``pykalman: Kalman Filter, Smoother,
+and EM Algorithm for Python,'' GitHub repository. [Online]. Available:
+\url{https://github.com/pykalman/pykalman}
 
-\bibitem{stonesoup} Defence Science and Technology Laboratory (Dstl),
-``Stone Soup: A software project to provide the target tracking community
-with a framework for the development and testing of tracking algorithms,''
-GitHub repository, 2017--present. [Online]. Available:
+\bibitem{simdkalman} O.~Seiskari, ``simdkalman: Python Kalman filters
+vectorized as SIMD,'' GitHub repository. [Online]. Available:
+\url{https://github.com/oseiskar/simdkalman}
+
+\bibitem{stonesoup} Defence Science and Technology Laboratory (Dstl), ``Stone
+Soup,'' GitHub repository. [Online]. Available:
 \url{https://github.com/dstl/Stone-Soup}
 
-\bibitem{kalmanjax} AaltoML, ``kalman-jax: Approximate inference for
-Markov Gaussian processes using iterated Kalman smoothing, in JAX,''
-GitHub repository. [Online]. Available:
-\url{https://github.com/AaltoML/kalman-jax}
+\bibitem{kaljax} AaltoML, ``kalman-jax: Approximate inference for Markov
+Gaussian processes using iterated Kalman smoothing, in JAX,'' GitHub
+repository. [Online]. Available: \url{https://github.com/AaltoML/kalman-jax}
 
-\bibitem{kalbee} L. D. Minh, ``kalbee: A clean, modular Python
-implementation of Kalman filters and estimation algorithms,'' v0.6.0,
-2026. [Online]. Available: \url{https://github.com/MinLee0210/kalbee}
+\bibitem{toolkit-ref} L.~D. Minh, ``\toolkit{}: a clean, modular
+implementation of Kalman filters and estimation algorithms,'' v0.6.0, 2026.
+[Online]. Available: \url{https://github.com/LakoreAI/kalbee}
 
 \end{thebibliography}
 \endgroup

@@ -50,6 +50,7 @@ extra_javascript:
 nav:
   - Home: index.md
   - Getting Started: getting_started.md
+  - Examples & Gallery: examples.md
   - Filters:
     - Kalman Filter: filters/kalman_filter.md
     - Extended Kalman Filter: filters/extended_kalman_filter.md

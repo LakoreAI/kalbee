@@ -24,6 +24,18 @@
 | **Stability** | Joseph form covariance updates, Cholesky factor stabilization, symmetry checks |
 | **Utilities** | Batch processing, state serialization, control inputs, missing data handling |
 
+## See It In Action
+
+<figure>
+  <img src="assets/gif/filter_demo.gif" alt="Kalman filter smoothing a noisy signal" width="600"/>
+  <figcaption>A Kalman filter turning noisy measurements into a clean position
+  and velocity estimate, with the ±1σ uncertainty band shrinking as
+  measurements arrive.</figcaption>
+</figure>
+
+Animated demos for filtering, maneuvering targets (IMM) and real-pedestrian
+multi-object tracking live in the **[Examples & Gallery](examples.md)**.
+
 ## Quick Start
 
 ```bash
@@ -45,6 +57,7 @@ print(report.summary())
 ## Navigation
 
 - **[Getting Started](getting_started.md)** — Installation, core concepts, first filter
+- **[Examples & Gallery](examples.md)** — Animated demos and copy-paste recipes
 - **[Filters](filters/kalman_filter.md)** — Deep dive into each filter with theory + code
 - **[Features](features/motion_models.md)** — Motion models, tracking, learning, diagnostics
 - **[Architecture](architecture.md)** — Design philosophy and extensibility
