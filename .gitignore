@@ -228,3 +228,6 @@ data/
 .github/docs/*.fls
 .github/docs/*.log
 .github/docs/*.out
+
+# The compiled paper PDF is intentionally tracked
+!.github/docs/kalbee.pdf
