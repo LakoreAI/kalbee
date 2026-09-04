@@ -68,7 +68,7 @@ for detections in detection_stream:
 ```
 
 !!! note "Full runnable demo"
-    See [`examples/multi_object_tracking.py`](https://github.com/MinLee0210/kalbee/blob/main/examples/multi_object_tracking.py) for a three-target scene (with a crossing) that maintains stable identities.
+    See [`examples/multi_object_tracking.py`](https://github.com/LakoreAI/kalbee/blob/main/examples/multi_object_tracking.py) for a three-target scene (with a crossing) that maintains stable identities.
 
 ## Parameters
 

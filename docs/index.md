@@ -1,18 +1,18 @@
 # kalbee
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/MinLee0210/kalbee/main/docs/kalbee.png" alt="kalbee logo" width="250"/>
+  <img src="https://raw.githubusercontent.com/LakoreAI/kalbee/main/docs/kalbee.png" alt="kalbee logo" width="250"/>
 </div>
 
 <br>
 
-**kalbee** is a clean, modular Python library for **Kalman Filters and state estimation algorithms**. It provides a unified interface for 15 different filter types, smoothers, diagnostic metrics, and a built-in experiment runner to compare filter performance.
+**kalbee** is a clean, modular Python **toolkit for filtering and tracking**. It provides a unified interface for 18 filter types, smoothers, multi-object trackers, diagnostic metrics, and a built-in experiment runner to compare filter performance.
 
 ## Highlights
 
 | Category | What you get |
 |---|---|
-| **15 Filters** | KF, EKF, UKF, Particle Filter, Ensemble, Information, Alpha-Beta-Gamma, Adaptive KF, Square-Root KF, Vectorized KF, Fading Memory KF, H-Infinity, SigmaPointUKF, IMM |
+| **18 Filters** | KF, EKF, UKF, SigmaPointUKF, CKF, PF, RBPF, EnKF, Information, ABG, Adaptive, Square-Root/Cholesky, Vectorized, Fading-Memory, H∞, IMM, VB, InEKF |
 | **Sigma Points** | Simplex, MerweScaled, Julier — pluggable via Strategy pattern |
 | **Motion Models** | Ready-made constant-velocity, constant-acceleration, and coordinated-turn $(F, Q)$ builders |
 | **Tracking** | SORT-style multi-object tracker with Hungarian association and gating |

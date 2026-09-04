@@ -22,7 +22,7 @@ __all__ = [
 # Single source of truth for ``kalbee.__version__`` and the ``--version`` CLI
 # flag. Keep in sync with the ``[project] version`` in ``pyproject.toml``.
 # ---------------------------------------------------------------------------
-__version__ = "0.6.0"
+__version__ = "1.0.0"
 
 # ---------------------------------------------------------------------------
 # Linear-algebra numerical-stability policy (``kalbee.modules.utils.linalg``)

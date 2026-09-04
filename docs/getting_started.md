@@ -14,7 +14,7 @@
 
 === "From source"
     ```bash
-    git clone https://github.com/MinLee0210/kalbee.git
+    git clone https://github.com/LakoreAI/kalbee.git
     cd kalbee
     pip install -e .
     ```

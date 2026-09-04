@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kalbee"
-version = "0.6.0"
-description = "A clean, modular Python implementation of Kalman Filters and estimation algorithms."
+version = "1.0.0"
+description = "A Python toolkit for filtering and tracking: Kalman filters, smoothers, and multi-object trackers behind one interface."
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [
@@ -79,9 +79,9 @@ include = ["kalbee*"]
 kalbee = ["py.typed"]
 
 [project.urls]
-Homepage = "https://github.com/MinLee0210/kalbee"
-Repository = "https://github.com/MinLee0210/kalbee"
-Documentation = "https://minlee0210.github.io/kalbee"
+Homepage = "https://github.com/LakoreAI/kalbee"
+Repository = "https://github.com/LakoreAI/kalbee"
+Documentation = "https://lakoreai.github.io/kalbee"
 
 [dependency-groups]
 dev = [

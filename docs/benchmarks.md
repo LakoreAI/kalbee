@@ -1,6 +1,6 @@
 # Benchmarks
 
-Numbers below are from [`scripts/compare_benchmarks.py`](https://github.com/MinLee0210/kalbee/blob/main/scripts/compare_benchmarks.py),
+Numbers below are from [`scripts/compare_benchmarks.py`](https://github.com/LakoreAI/kalbee/blob/main/scripts/compare_benchmarks.py),
 run head-to-head against [FilterPy](https://github.com/rlabbe/filterpy),
 [pykalman](https://github.com/pykalman/pykalman), and
 [simdkalman](https://github.com/oseiskar/simdkalman) on the *same* task, with

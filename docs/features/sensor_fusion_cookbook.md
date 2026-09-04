@@ -40,7 +40,7 @@ for gyro, accel in imu_stream:  # gyro: rad/s (3,); accel: unit-normalized (3, 1
     ekf.state = quaternion_normalize(ekf.state)
 ```
 
-Full runnable version: [`examples/quaternion_attitude_ekf.py`](https://github.com/MinLee0210/kalbee/blob/main/examples/quaternion_attitude_ekf.py).
+Full runnable version: [`examples/quaternion_attitude_ekf.py`](https://github.com/LakoreAI/kalbee/blob/main/examples/quaternion_attitude_ekf.py).
 
 **Why `attitude_transition_jacobian` is exact, not approximate.** Most EKF
 process Jacobians are first-order linearizations. This one isn't: because
@@ -96,7 +96,7 @@ x, y = kf.state[0, 0], kf.state[2, 0]
 ```
 
 Full runnable version, including a dead-reckoning-vs-fused comparison:
-[`examples/gps_imu_fusion.py`](https://github.com/MinLee0210/kalbee/blob/main/examples/gps_imu_fusion.py).
+[`examples/gps_imu_fusion.py`](https://github.com/LakoreAI/kalbee/blob/main/examples/gps_imu_fusion.py).
 
 `imu_velocity_control(dt, n_dims)` builds the control matrix `B` that maps a
 world-frame accelerometer reading directly onto a constant-velocity
