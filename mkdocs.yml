@@ -1,9 +1,9 @@
 site_name: "kalbee"
 site_description: "A clean, modular Python library for Kalman Filters and state estimation algorithms."
-site_url: "https://minlee0210.github.io/kalbee"
+site_url: "https://lakoreai.github.io/kalbee"
 
-repo_url: "https://github.com/MinLee0210/kalbee"
-repo_name: "MinLee0210/kalbee"
+repo_url: "https://github.com/LakoreAI/kalbee"
+repo_name: "LakoreAI/kalbee"
 
 theme:
   name: material
