@@ -112,10 +112,10 @@ from kalbee.tracking import (
     BernoulliTarget,
 )
 from kalbee.learning import em_kalman, EMResult
-
-__version__ = "0.6.0"
+from kalbee.constants import __version__
 
 __all__ = [
+    "__version__",
     # Filters
     "BaseFilter",
     "KalmanFilter",

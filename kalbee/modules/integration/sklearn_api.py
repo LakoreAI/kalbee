@@ -13,6 +13,8 @@ Requires scikit-learn: ``pip install kalbee[sklearn]``.
 
 import numpy as np
 
+from kalbee.constants import DEFAULT_INITIAL_COVARIANCE
+
 try:
     from sklearn.base import BaseEstimator, TransformerMixin
     from sklearn.utils.validation import check_is_fitted
@@ -99,7 +101,7 @@ class KalmanEstimator(BaseEstimator, TransformerMixin):
 
         n_state = F.shape[0]
         self._x0_ = np.zeros((n_state, 1))
-        self._P0_ = np.eye(n_state) * 100.0
+        self._P0_ = np.eye(n_state) * DEFAULT_INITIAL_COVARIANCE
 
         self.filter_ = AutoFilter.from_filter(
             self._x0_, self._P0_, F, Q, H, R, mode=self.mode

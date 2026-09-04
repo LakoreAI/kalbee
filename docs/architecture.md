@@ -5,6 +5,7 @@
 ```
 kalbee/
 ├── __init__.py                  # Top-level exports
+├── constants.py                 # Central registry of shared constants
 ├── py.typed                     # PEP 561 marker — ships type info
 ├── cli.py                       # `kalbee` CLI (demo/bench/new)
 ├── models/
@@ -46,8 +47,17 @@ kalbee/
 │   ├── signals.py               # Signal generators
 │   ├── runner.py                # Experiment runner
 │   └── results.py               # Results container
-└── tests/
-    └── test_*.py                # 205 tests
+└── tests/                        # Mirrors the kalbee package by area:
+    ├── cli/                      #   CLI tests
+    ├── experiments/              #   signal generators / experiment runner
+    ├── filters/                  #   one file per filter + base / auto_filter
+    ├── fusion/                   #   covariance intersection, track fusion, async buffer
+    ├── integration/              #   pandas / polars / scikit-learn / factor graph
+    ├── learning/                 #   EM, online EM, auto-tune, torch
+    ├── models/                   #   motion / measurement / attitude models
+    ├── smoothers/                #   RTS / extended / unscented / fixed-lag
+    ├── tracking/                 #   tracker, JPDA, PMBM
+    └── utils/                    #   metrics, gating, consistency, linalg, ...
 ```
 
 ## Design Principles

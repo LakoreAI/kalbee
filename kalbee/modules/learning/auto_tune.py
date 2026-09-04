@@ -16,6 +16,7 @@ from typing import Tuple, Optional, List
 from dataclasses import dataclass, field
 import numpy as np
 
+from kalbee.constants import DEFAULT_INITIAL_COVARIANCE
 from kalbee.modules.filters.kf_filter import KalmanFilter
 
 
@@ -73,7 +74,11 @@ def tune_kalman_filter(
 
     # Initialize parameters
     x0 = np.zeros((n, 1)) if x0 is None else np.asarray(x0, dtype=float).reshape(n, 1)
-    P0 = np.eye(n) * 100 if P0 is None else np.asarray(P0, dtype=float)
+    P0 = (
+        np.eye(n) * DEFAULT_INITIAL_COVARIANCE
+        if P0 is None
+        else np.asarray(P0, dtype=float)
+    )
     Q = np.eye(n) * 0.01 if Q_init is None else np.asarray(Q_init, dtype=float).copy()
     R = np.eye(m) if R_init is None else np.asarray(R_init, dtype=float).copy()
 
@@ -213,7 +218,9 @@ def quick_tune(
     R = np.eye(m) * measurement_var
 
     # Run filter
-    _, _, mean_nis = _run_filter_and_collect(z, F, H, np.zeros((n, 1)), np.eye(n) * 100, Q, R)
+    _, _, mean_nis = _run_filter_and_collect(
+        z, F, H, np.zeros((n, 1)), np.eye(n) * DEFAULT_INITIAL_COVARIANCE, Q, R
+    )
 
     # Scale R to make mean_NIS ≈ m
     if mean_nis > 0:

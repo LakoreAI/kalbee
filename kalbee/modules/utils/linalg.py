@@ -10,12 +10,15 @@ number before trusting a direct inverse.
 
 import numpy as np
 
-# Machine epsilon threshold: matrices with condition number above this are
-# treated as effectively singular.
-_COND_LIMIT = 1.0 / np.finfo(float).eps
+from kalbee.constants import (
+    BATCHED_INV_REGULARIZATION,
+    CHOLESKY_REGULARIZATION,
+    COND_LIMIT,
+    MATRIX_INV_REGULARIZATION,
+)
 
 
-def safe_inv(A: np.ndarray, reg: float = 1e-6) -> np.ndarray:
+def safe_inv(A: np.ndarray, reg: float = MATRIX_INV_REGULARIZATION) -> np.ndarray:
     """
     Robustly invert a square 2-D matrix.
 
@@ -37,7 +40,7 @@ def safe_inv(A: np.ndarray, reg: float = 1e-6) -> np.ndarray:
 
     try:
         cond = np.linalg.cond(A)
-        if np.isfinite(cond) and cond < _COND_LIMIT:
+        if np.isfinite(cond) and cond < COND_LIMIT:
             return np.linalg.inv(A)
     except np.linalg.LinAlgError:
         pass
@@ -48,7 +51,7 @@ def safe_inv(A: np.ndarray, reg: float = 1e-6) -> np.ndarray:
         return np.linalg.pinv(A)
 
 
-def batched_inv(A: np.ndarray, reg: float = 1e-6) -> np.ndarray:
+def batched_inv(A: np.ndarray, reg: float = BATCHED_INV_REGULARIZATION) -> np.ndarray:
     """
     Invert a stack of square matrices of shape (batch, n, n).
 
@@ -69,7 +72,9 @@ def batched_inv(A: np.ndarray, reg: float = 1e-6) -> np.ndarray:
         return np.linalg.inv(A + np.eye(A.shape[-1]) * reg)
 
 
-def safe_cholesky(A: np.ndarray, reg: float = 1e-9, lower: bool = True) -> np.ndarray:
+def safe_cholesky(
+    A: np.ndarray, reg: float = CHOLESKY_REGULARIZATION, lower: bool = True
+) -> np.ndarray:
     """
     Cholesky factorization with a regularized fallback for matrices that are
     positive semi-definite (or slightly indefinite due to rounding).

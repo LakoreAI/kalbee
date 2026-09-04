@@ -3,6 +3,8 @@ from typing import Optional, List, Tuple
 import json
 import numpy as np
 
+from kalbee.constants import DEFAULT_INITIAL_COVARIANCE
+
 
 class BaseFilter(ABC):
     """
@@ -147,7 +149,7 @@ class BaseFilter(ABC):
         if covariance is not None:
             self.covariance = np.asarray(covariance, dtype=float)
         else:
-            self.covariance = np.eye(n) * 100.0
+            self.covariance = np.eye(n) * DEFAULT_INITIAL_COVARIANCE
 
         # Clear any cached diagnostics
         for attr in ["last_y", "last_S", "K"]:
